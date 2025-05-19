@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Laboratório de Física Acessível</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    header img {
+      max-height: 80px;
+    }
+    .audio-toggle {
+      margin-top: 10px;
+    }
+    section {
+      margin-bottom: 30px;
+    }
+    button {
+      margin: 5px;
+      padding: 8px 14px;
+      border-radius: 5px;
+      background-color: #347fc4;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #28527a;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px;
+      text-align: center;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="/static/img/logo_app_fisica_web.png" alt="Logomarca do Laboratório de Física Web">
+    <h1>Laboratório de Física Acessível</h1>
+    <button class="audio-toggle" onclick="alternarAudio()">🔊 Ligar/Desligar Áudio</button>
+  </header>
+
+  <main>
+    <section>
+      <h2>Queda Livre</h2>
+      <form method="POST" action="/queda-livre">
+        Altura (m): <input type="number" name="altura" required step="0.01">
+        Tempo (s): <input type="number" name="tempo" required step="0.01">
+        <button type="submit">Registrar</button>
+        <button type="button" onclick="limpar('queda')">Limpar Dados</button>
+        <button type="button" onclick="window.location.href='/relatorio/queda'">Gerar PDF</button>
+      </form>
+      <div id="tabela-queda"></div>
+    </section>
+
+    <section>
+      <h2>Pêndulo Simples</h2>
+      <form method="POST" action="/pendulo">
+        Comprimento (m): <input type="number" name="comprimento" required step="0.01">
+        Período (s): <input type="number" name="periodo" required step="0.01">
+        <button type="submit">Registrar</button>
+        <button type="button" onclick="limpar('pendulo')">Limpar Dados</button>
+        <button type="button" onclick="window.location.href='/relatorio/pendulo'">Gerar PDF</button>
+      </form>
+      <div id="tabela-pendulo"></div>
+    </section>
+
+    <section>
+      <h2>Plano Inclinado</h2>
+      <form method="POST" action="/plano">
+        Ângulo (°): <input type="number" name="angulo" required step="0.1">
+        Distância (m): <input type="number" name="distancia" required step="0.01">
+        Tempo (s): <input type="number" name="tempo" required step="0.01">
+        <button type="submit">Registrar</button>
+        <button type="button" onclick="limpar('plano')">Limpar Dados</button>
+        <button type="button" onclick="window.location.href='/relatorio/plano'">Gerar PDF</button>
+      </form>
+      <div id="tabela-plano"></div>
+    </section>
+  </main>
+
+  <!-- VLibras Plugin -->
+  <div vw class="enabled">
+    <div vw-access-button class="active"></div>
+    <div vw-plugin-wrapper>
+      <div class="vw-plugin-top-wrapper"></div>
+    </div>
+  </div>
+  <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+  <script>
+    new window.VLibras.Widget('https://vlibras.gov.br/app');
+  </script>
+
+  <script>
+    let audioAtivo = true;
+
+    function alternarAudio() {
+      audioAtivo = !audioAtivo;
+      const msg = audioAtivo ? "Áudio ativado" : "Áudio desativado";
+      falar(msg);
+    }
+
+    function falar(texto) {
+      if (!audioAtivo || !texto) return;
+      const msg = new SpeechSynthesisUtterance(texto);
+      speechSynthesis.cancel();
+      speechSynthesis.speak(msg);
+    }
+
+    function limpar(tipo) {
+      fetch("/limpar-" + tipo, { method: "POST" }).then(() => location.reload());
+    }
+
+    window.onload = () => {
+      const mensagem = {{ mensagem_voz | tojson }};
+      if (mensagem) falar(mensagem);
+
+      carregarTabela('queda', 'tabela-queda');
+      carregarTabela('pendulo', 'tabela-pendulo');
+      carregarTabela('plano', 'tabela-plano');
+    };
+
+    document.querySelectorAll("button").forEach(btn => {
+      btn.addEventListener("mouseenter", () => {
+        if (!audioAtivo) return;
+        const texto = btn.innerText || btn.value;
+        falar(texto);
+      });
+    });
+
+    document.addEventListener("keydown", function (e) {
+      if (!audioAtivo || !e.ctrlKey) return;
+      const tecla = e.key.toLowerCase();
+      if (tecla === 'q') falar("Você pressionou Queda Livre");
+      if (tecla === 'p') falar("Você pressionou Pêndulo");
+      if (tecla === 'l') falar("Você pressionou Plano Inclinado");
+    });
+
+    function carregarTabela(tipo, elementoId) {
+      fetch(`/dados/${tipo}`).then(res => res.json()).then(data => {
+        const container = document.getElementById(elementoId);
+        if (!data.dados || data.dados.length === 0) return;
+
+        let colunas = Object.keys(data.dados[0]);
+        let html = '<table><tr>' + colunas.map(c => `<th>${c}</th>`).join('') + '</tr>';
+        data.dados.forEach(linha => {
+          html += '<tr>' + colunas.map(c => `<td>${linha[c]}</td>`).join('') + '</tr>';
+        });
+        html += '</table>';
+        container.innerHTML = html;
+      });
+    }
+  </script>
+</body>
+</html>

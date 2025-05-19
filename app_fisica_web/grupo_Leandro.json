@@ -1,0 +1,1 @@
+{"grupo": "Leandro", "queda": [{"altura": 50.0, "tempo": 4.0, "gravidade": 6.25}, {"altura": 5.0, "tempo": 10.0, "gravidade": 0.1}, {"altura": 3.0, "tempo": 4.0, "gravidade": 0.38}, {"altura": 8.0, "tempo": 3.0, "gravidade": 1.78}, {"altura": 5.0, "tempo": 4.0, "gravidade": 0.62}], "pendulo": [{"comprimento": 2.0, "periodo": 4.0, "gravidade": 4.93}], "plano": []}
