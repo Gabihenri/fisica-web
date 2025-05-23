@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Laboratório de Física Acessível</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    header img {
+      width: 200px;
+    }
+    section {
+      margin-top: 30px;
+      padding: 15px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+    }
+    table {
+      width: 100%;
+      margin-top: 10px;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #aaa;
+      padding: 6px;
+      text-align: center;
+    }
+    .audio-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <img src="{{ url_for('static', filename='logo.png') }}" alt="Logomarca do Laboratório de Física Web" />
+  <h1>Laboratório de Física Acessível</h1>
+</header>
+
+<button id="toggle-voice" class="audio-toggle">🔊 Desativar Áudio</button>
+
+<section>
+  <h2>Cadastro do Grupo</h2>
+  <form method="POST" action="/salvar-grupo">
+    {% for i in range(1, 6) %}
+      <input name="nome{{ i }}" placeholder="Nome {{ i }}">
+    {% endfor %}
+    <br>
+    <input name="turma" placeholder="Turma">
+    <input name="serie" placeholder="Série">
+    <button type="submit" onfocus="falar('Salvar grupo')">Salvar Grupo</button>
+  </form>
+</section>
+
+<section>
+  <h2>Experimento: Queda Livre</h2>
+  <form method="POST" action="/queda-livre">
+    <input name="altura" placeholder="Altura (m)" required>
+    <input name="tempo" placeholder="Tempo (s)" required>
+    <button type="submit" onfocus="falar('Registrar queda livre')">Registrar</button>
+  </form>
+  <form method="POST" action="/limpar-queda">
+    <button type="submit" onfocus="falar('Limpar dados da queda livre')">Limpar Dados</button>
+  </form>
+  <table>
+    <tr><th>Altura (m)</th><th>Tempo (s)</th><th>Gravidade (m/s²)</th></tr>
+    {% for d in dados_queda %}
+      <tr><td>{{ d.altura }}</td><td>{{ d.tempo }}</td><td>{{ d.gravidade }}</td></tr>
+    {% endfor %}
+  </table>
+  <a href="/relatorio/queda" onfocus="falar('Gerar relatório da queda livre')">📄 Gerar Relatório PDF</a>
+</section>
+
+<section>
+  <h2>Experimento: Pêndulo Simples</h2>
+  <form method="POST" action="/pendulo">
+    <input name="comprimento" placeholder="Comprimento (m)" required>
+    <input name="periodo" placeholder="Período (s)" required>
+    <button type="submit" onfocus="falar('Registrar pêndulo simples')">Registrar</button>
+  </form>
+  <form method="POST" action="/limpar-pendulo">
+    <button type="submit" onfocus="falar('Limpar dados do pêndulo')">Limpar Dados</button>
+  </form>
+  <table>
+    <tr><th>Comprimento (m)</th><th>Período (s)</th><th>Gravidade (m/s²)</th></tr>
+    {% for d in dados_pendulo %}
+      <tr><td>{{ d.comprimento }}</td><td>{{ d.periodo }}</td><td>{{ d.gravidade }}</td></tr>
+    {% endfor %}
+  </table>
+  <a href="/relatorio/pendulo" onfocus="falar('Gerar relatório do pêndulo')">📄 Gerar Relatório PDF</a>
+</section>
+
+<section>
+  <h2>Experimento: Plano Inclinado</h2>
+  <form method="POST" action="/plano">
+    <input name="angulo" placeholder="Ângulo (°)" required>
+    <input name="distancia" placeholder="Distância (m)" required>
+    <input name="tempo" placeholder="Tempo (s)" required>
+    <button type="submit" onfocus="falar('Registrar plano inclinado')">Registrar</button>
+  </form>
+  <form method="POST" action="/limpar-plano">
+    <button type="submit" onfocus="falar('Limpar dados do plano inclinado')">Limpar Dados</button>
+  </form>
+  <table>
+    <tr><th>Ângulo (°)</th><th>Distância (m)</th><th>Tempo (s)</th><th>Gravidade (m/s²)</th></tr>
+    {% for d in dados_plano %}
+      <tr>
+        <td>{{ d.angulo }}</td>
+        <td>{{ d.distancia }}</td>
+        <td>{{ d.tempo }}</td>
+        <td>{{ d.gravidade }}</td>
+      </tr>
+    {% endfor %}
+  </table>
+  <a href="/relatorio/plano" onfocus="falar('Gerar relatório do plano inclinado')">📄 Gerar Relatório PDF</a>
+</section>
+
+<script>
+  let vozAtiva = true;
+  function falar(texto) {
+    if (!vozAtiva) return;
+    const synth = window.speechSynthesis;
+    const utter = new SpeechSynthesisUtterance(texto);
+    utter.lang = 'pt-BR';
+    synth.cancel();
+    synth.speak(utter);
+  }
+
+  window.onload = () => {
+    falar("Bem-vindo ao Laboratório de Física Acessível. Use Tab para navegar pelos botões.");
+  }
+
+  document.getElementById("toggle-voice").onclick = () => {
+    vozAtiva = !vozAtiva;
+    document.getElementById("toggle-voice").textContent = vozAtiva ? "🔊 Desativar Áudio" : "🔇 Ativar Áudio";
+    if (vozAtiva) falar("Áudio ativado.");
+  };
+</script>
+
+</body>
+</html>
