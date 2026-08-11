@@ -2,3 +2,5 @@ flask
 fpdf
 matplotlib
 gunicorn
+supabase
+python-dotenv
