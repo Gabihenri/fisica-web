@@ -60,8 +60,8 @@ def interpretar_resultado(estatisticas):
         dispersao = "As medidas apresentam dispersão elevada e recomendam revisão do procedimento experimental."
 
     return (
-        f"A média experimental obtida foi {media:.4f} m/s2, {proximidade}. "
-        f"O erro percentual foi {erro:.2f}%, resultando em classificação {qualidade}. "
+        f"A média experimental obtida foi {media:.4f} metros por segundo ao quadrado, {proximidade}. "
+        f"O erro percentual foi {erro:.2f} por cento, resultando em classificação {qualidade}. "
         f"{dispersao}"
     )
 
@@ -128,6 +128,150 @@ def obter_configuracao_experimento(experimento):
         },
     }
     return configuracoes.get(experimento)
+
+
+def descrever_medicoes_para_audio(experimento, dados):
+    if not dados:
+        return ["Nenhuma medição foi registrada até o momento."]
+
+    descricoes = []
+    for indice, item in enumerate(dados, start=1):
+        if experimento == "queda":
+            texto = (
+                f"Medição {indice}: altura de {item['altura']} metros, "
+                f"tempo de {item['tempo']} segundos e gravidade calculada de "
+                f"{item['gravidade']:.4f} metros por segundo ao quadrado."
+            )
+        elif experimento == "pendulo":
+            texto = (
+                f"Medição {indice}: comprimento do pêndulo de {item['comprimento']} metros, "
+                f"período de {item['periodo']} segundos e gravidade calculada de "
+                f"{item['gravidade']:.4f} metros por segundo ao quadrado."
+            )
+        else:
+            texto = (
+                f"Medição {indice}: ângulo de {item['angulo']} graus, distância de "
+                f"{item['distancia']} metros, tempo de {item['tempo']} segundos, aceleração de "
+                f"{item['aceleracao']:.4f} metros por segundo ao quadrado e gravidade calculada de "
+                f"{item['gravidade']:.4f} metros por segundo ao quadrado."
+            )
+        descricoes.append(texto)
+    return descricoes
+
+
+def audiodescrever_grafico(dados, estatisticas):
+    if not dados or estatisticas["n"] == 0:
+        return "Não há gráfico disponível porque ainda não existem medidas registradas."
+
+    valores = [float(item["gravidade"]) for item in dados]
+    indice_min = valores.index(min(valores)) + 1
+    indice_max = valores.index(max(valores)) + 1
+
+    if estatisticas["media"] < GRAVIDADE_REFERENCIA:
+        posicao_media = "abaixo"
+    elif estatisticas["media"] > GRAVIDADE_REFERENCIA:
+        posicao_media = "acima"
+    else:
+        posicao_media = "igual"
+
+    if len(valores) == 1:
+        tendencia = "O gráfico contém apenas um ponto experimental."
+    else:
+        amplitude = estatisticas["maximo"] - estatisticas["minimo"]
+        if amplitude <= 0.4:
+            tendencia = "Os pontos estão bastante próximos entre si, indicando pouca variação entre as medições."
+        elif amplitude <= 1.6:
+            tendencia = "Os pontos apresentam variação moderada ao longo das medições."
+        else:
+            tendencia = "Os pontos apresentam variação ampla, indicando diferenças importantes entre as medições."
+
+    return (
+        f"Audiodescrição do gráfico. O eixo horizontal representa o número da medição e o eixo vertical representa "
+        f"a aceleração da gravidade em metros por segundo ao quadrado. Há {estatisticas['n']} pontos experimentais. "
+        f"O menor valor é {estatisticas['minimo']:.4f}, na medição {indice_min}, e o maior valor é "
+        f"{estatisticas['maximo']:.4f}, na medição {indice_max}. A média experimental é "
+        f"{estatisticas['media']:.4f}, ficando {posicao_media} da linha de referência de "
+        f"{GRAVIDADE_REFERENCIA:.5f}. {tendencia}"
+    )
+
+
+def parecer_pedagogico_acessivel(estatisticas):
+    if estatisticas["n"] == 0:
+        return (
+            "Parecer pedagógico: registre pelo menos uma medição para que o sistema possa comparar o resultado "
+            "experimental com o valor de referência da gravidade."
+        )
+
+    if estatisticas["erro_percentual"] <= 5:
+        recomendacao = (
+            "O resultado apresenta excelente aproximação. Compare as repetições e discuta quais cuidados "
+            "experimentais ajudaram a obter valores tão próximos da referência."
+        )
+    elif estatisticas["erro_percentual"] <= 10:
+        recomendacao = (
+            "O resultado apresenta boa aproximação. Vale repetir algumas medidas e observar como o controle do "
+            "tempo, das distâncias e da montagem pode reduzir ainda mais o erro."
+        )
+    elif estatisticas["erro_percentual"] <= 20:
+        recomendacao = (
+            "O resultado apresenta diferença perceptível em relação à referência. Recomenda-se revisar o "
+            "procedimento, repetir as medidas e identificar possíveis fontes de incerteza experimental."
+        )
+    else:
+        recomendacao = (
+            "O resultado está distante do valor esperado. Antes de concluir o experimento, revise unidades, "
+            "instrumentos, montagem e forma de medir o tempo e repita o procedimento."
+        )
+
+    return f"Parecer pedagógico: {recomendacao}"
+
+
+def gerar_relatorio_acessivel(experimento, configuracao):
+    dados = configuracao["dados"]
+    estatisticas = calcular_estatisticas(dados)
+    medicoes = descrever_medicoes_para_audio(experimento, dados)
+
+    abertura = (
+        f"Relatório acessível do experimento {configuracao['titulo']}. "
+        f"O valor de referência adotado para a gravidade é {GRAVIDADE_REFERENCIA:.5f} metros por segundo ao quadrado."
+    )
+
+    if estatisticas["n"] == 0:
+        resultado = "Ainda não há resultados experimentais para análise."
+    else:
+        resultado = (
+            f"Foram registradas {estatisticas['n']} medições. A média obtida foi {estatisticas['media']:.4f} metros "
+            f"por segundo ao quadrado. O desvio padrão foi {estatisticas['desvio_padrao']:.4f}. "
+            f"O erro percentual médio foi {estatisticas['erro_percentual']:.2f} por cento. "
+            f"A qualidade experimental foi classificada como {estatisticas['qualidade']}."
+        )
+
+    grafico = audiodescrever_grafico(dados, estatisticas)
+    interpretacao = interpretar_resultado(estatisticas)
+    parecer = parecer_pedagogico_acessivel(estatisticas)
+
+    secoes = {
+        "abertura": abertura,
+        "medicoes": medicoes,
+        "resultado": resultado,
+        "audiodescricao_grafico": grafico,
+        "interpretacao": interpretacao,
+        "parecer_pedagogico": parecer,
+    }
+
+    texto_completo = " ".join(
+        [abertura]
+        + medicoes
+        + [resultado, grafico, interpretacao, parecer]
+    )
+
+    return {
+        "experimento": experimento,
+        "titulo": configuracao["titulo"],
+        "estatisticas": estatisticas,
+        "secoes": secoes,
+        "texto_completo": texto_completo,
+    }
 
 
 def gerar_grafico_resultados(dados, estatisticas, titulo_experimento):
@@ -311,6 +455,15 @@ def api_estatisticas(experimento):
             "interpretacao": interpretar_resultado(estatisticas),
         }
     )
+
+
+@app.route("/api/relatorio-acessivel/<experimento>")
+def api_relatorio_acessivel(experimento):
+    configuracao = obter_configuracao_experimento(experimento)
+    if not configuracao:
+        return jsonify({"erro": "Experimento inválido"}), 404
+
+    return jsonify(gerar_relatorio_acessivel(experimento, configuracao))
 
 
 @app.route("/relatorio/<experimento>")
