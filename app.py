@@ -70,7 +70,7 @@ def obter_configuracao_experimento(experimento):
             "teoria": (
                 "A queda livre é um movimento uniformemente acelerado sob ação da gravidade. "
                 "Desprezando a resistência do ar e considerando velocidade inicial nula, "
-                "a aceleração gravitacional pode ser estimada pela relação g = 2h/t²."
+                "a aceleração gravitacional pode ser estimada pela relação g = 2h/t^2."
             ),
         },
         "pendulo": {
@@ -81,7 +81,7 @@ def obter_configuracao_experimento(experimento):
             "teoria": (
                 "Para pequenas oscilações, o período de um pêndulo simples depende do "
                 "comprimento do fio e da aceleração da gravidade. A estimativa experimental "
-                "é obtida pela relação g = 4π²L/T²."
+                "é obtida pela relação g = 4*pi^2*L/T^2."
             ),
         },
         "plano": {
@@ -91,8 +91,8 @@ def obter_configuracao_experimento(experimento):
             "titulo": "Plano Inclinado",
             "teoria": (
                 "Em um plano inclinado ideal, a componente da aceleração paralela ao plano "
-                "é a = g sen(θ). A partir da distância percorrida e do tempo, estima-se a "
-                "aceleração e, consequentemente, o valor experimental de g."
+                "é a = g*sen(angulo). A partir da distância percorrida e do tempo, estima-se "
+                "a aceleração e, consequentemente, o valor experimental de g."
             ),
         },
     }
@@ -174,7 +174,7 @@ def plano():
     tempo = float(request.form["tempo"])
 
     if angulo <= 0 or angulo >= 90:
-        return "O ângulo deve estar entre 0° e 90°.", 400
+        return "O ângulo deve estar entre 0 e 90 graus.", 400
     if distancia <= 0 or tempo <= 0:
         return "Distância e tempo devem ser maiores que zero.", 400
 
@@ -282,9 +282,9 @@ def gerar_pdf(experimento):
     else:
         linhas_estatisticas = [
             ("Número de medidas", estatisticas["n"]),
-            ("Gravidade de referência (m/s²)", f"{estatisticas['gravidade_referencia']:.5f}"),
-            ("Média experimental de g (m/s²)", f"{estatisticas['media']:.4f}"),
-            ("Desvio padrão amostral (m/s²)", f"{estatisticas['desvio_padrao']:.4f}"),
+            ("Gravidade de referência (m/s2)", f"{estatisticas['gravidade_referencia']:.5f}"),
+            ("Média experimental de g (m/s2)", f"{estatisticas['media']:.4f}"),
+            ("Desvio padrão amostral (m/s2)", f"{estatisticas['desvio_padrao']:.4f}"),
             ("Erro percentual médio", f"{estatisticas['erro_percentual']:.2f}%"),
             ("Qualidade experimental", estatisticas["qualidade"]),
         ]
