@@ -15,9 +15,11 @@
     .accessibility-panel select, .accessibility-panel button { min-height: 42px; font-size: 16px; padding: 8px; }
     .accessibility-panel label { display: block; font-weight: bold; margin-bottom: 8px; }
     .accessibility-status { margin-top: 12px; font-weight: bold; }
+    .libras-help { margin-top: 10px; padding: 10px; background: #eef6ff; border-left: 4px solid #1f5f99; }
     body.high-contrast { background: #000; color: #fff; }
     body.high-contrast section { background: #000; border-color: #fff; }
     body.high-contrast input, body.high-contrast select, body.high-contrast button { background: #000; color: #fff; border: 2px solid #fff; }
+    body.high-contrast .libras-help { background: #000; border-color: #fff; }
     body.large-text { font-size: 125%; }
     body.large-controls input, body.large-controls button, body.large-controls select, body.large-controls a { min-height: 48px; font-size: 18px; margin: 4px; }
     body.simplified section p, body.simplified .accessibility-help { max-width: 65ch; line-height: 1.7; }
@@ -59,9 +61,10 @@
     <label><input type="checkbox" id="recurso-texto"> Texto ampliado</label>
     <label><input type="checkbox" id="recurso-controles"> Controles ampliados</label>
     <label><input type="checkbox" id="recurso-simplificado"> Leitura simplificada e guiada</label>
-    <label><input type="checkbox" id="recurso-libras"> Libras (integração em desenvolvimento)</label>
+    <label><input type="checkbox" id="recurso-libras"> Libras com VLibras</label>
   </div>
   <p id="status-acessibilidade" class="accessibility-status" role="status" aria-live="polite"></p>
+  <p class="libras-help">Para tradução em Libras, use o botão flutuante do VLibras que aparece na página. O recurso oferece tradução automática do conteúdo em português e não substitui um intérprete humano em situações pedagógicas que exijam mediação especializada.</p>
 </section>
 
 <section>
@@ -106,6 +109,13 @@
   <a href="/relatorio/plano" onfocus="falar('Gerar relatório do plano inclinado')">📄 Gerar Relatório PDF</a>
 </section>
 
+<div vw class="enabled">
+  <div vw-access-button class="active"></div>
+  <div vw-plugin-wrapper>
+    <div class="vw-plugin-top-wrapper"></div>
+  </div>
+</div>
+
 <script>
   let vozAtiva = true;
   function falar(texto) {
@@ -132,7 +142,7 @@
     if (config.controles) document.body.classList.add('large-controls');
     if (config.simplificado) document.body.classList.add('simplified');
     document.getElementById('toggle-voice').textContent = vozAtiva ? '🔊 Desativar Áudio' : '🔇 Ativar Áudio';
-    if (config.libras) status.textContent = 'Perfil aplicado. Recurso de Libras selecionado; integração VLibras será adicionada na próxima etapa.';
+    if (config.libras) status.textContent = 'Perfil aplicado. Libras está disponível pelo botão flutuante do VLibras.';
     else status.textContent = 'Perfil de acessibilidade aplicado neste dispositivo.';
   }
 
@@ -178,6 +188,10 @@
     document.getElementById('toggle-voice').textContent = vozAtiva ? '🔊 Desativar Áudio' : '🔇 Ativar Áudio';
     if (vozAtiva) falar('Áudio ativado.');
   };
+</script>
+<script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+<script>
+  new window.VLibras.Widget('https://vlibras.gov.br/app');
 </script>
 </body>
 </html>
