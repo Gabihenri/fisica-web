@@ -1,9 +1,10 @@
-from flask import Flask, render_template, request, redirect, jsonify, send_file, url_for
+from flask import Flask, render_template, request, redirect, jsonify, send_file
 import io
 import json
 import math
 import os
 import statistics
+import tempfile
 
 from fpdf import FPDF
 import matplotlib.pyplot as plt
@@ -20,7 +21,6 @@ GRAVIDADE_REFERENCIA = 9.80665
 
 
 def classificar_qualidade(erro_percentual):
-    """Classifica a qualidade experimental a partir do erro percentual médio."""
     if erro_percentual is None:
         return "Dados insuficientes"
     if erro_percentual <= 5:
@@ -32,8 +32,41 @@ def classificar_qualidade(erro_percentual):
     return "Requer revisão experimental"
 
 
+def interpretar_resultado(estatisticas):
+    if estatisticas["n"] == 0:
+        return "Ainda não há medidas suficientes para interpretar o experimento."
+
+    media = estatisticas["media"]
+    erro = estatisticas["erro_percentual"]
+    desvio = estatisticas["desvio_padrao"]
+    qualidade = estatisticas["qualidade"]
+
+    if erro <= 5:
+        proximidade = "muito próximo do valor de referência"
+    elif erro <= 10:
+        proximidade = "próximo do valor de referência"
+    elif erro <= 20:
+        proximidade = "moderadamente distante do valor de referência"
+    else:
+        proximidade = "distante do valor de referência"
+
+    if estatisticas["n"] == 1:
+        dispersao = "Há apenas uma medida; por isso ainda não é possível avaliar a dispersão entre repetições."
+    elif desvio <= 0.2:
+        dispersao = "As medidas apresentam baixa dispersão entre si."
+    elif desvio <= 0.8:
+        dispersao = "As medidas apresentam dispersão moderada."
+    else:
+        dispersao = "As medidas apresentam dispersão elevada e recomendam revisão do procedimento experimental."
+
+    return (
+        f"A média experimental obtida foi {media:.4f} m/s2, {proximidade}. "
+        f"O erro percentual foi {erro:.2f}%, resultando em classificação {qualidade}. "
+        f"{dispersao}"
+    )
+
+
 def calcular_estatisticas(dados):
-    """Calcula indicadores estatísticos para uma coleção de medidas de gravidade."""
     valores_g = [float(item["gravidade"]) for item in dados if "gravidade" in item]
 
     if not valores_g:
@@ -44,6 +77,8 @@ def calcular_estatisticas(dados):
             "erro_percentual": None,
             "qualidade": "Dados insuficientes",
             "gravidade_referencia": GRAVIDADE_REFERENCIA,
+            "minimo": None,
+            "maximo": None,
         }
 
     media = statistics.mean(valores_g)
@@ -57,6 +92,8 @@ def calcular_estatisticas(dados):
         "erro_percentual": round(erro_percentual, 2),
         "qualidade": classificar_qualidade(erro_percentual),
         "gravidade_referencia": GRAVIDADE_REFERENCIA,
+        "minimo": round(min(valores_g), 4),
+        "maximo": round(max(valores_g), 4),
     }
 
 
@@ -64,8 +101,6 @@ def obter_configuracao_experimento(experimento):
     configuracoes = {
         "queda": {
             "dados": dados_queda,
-            "x_label": "tempo",
-            "y_label": "altura",
             "titulo": "Queda Livre",
             "teoria": (
                 "A queda livre é um movimento uniformemente acelerado sob ação da gravidade. "
@@ -75,8 +110,6 @@ def obter_configuracao_experimento(experimento):
         },
         "pendulo": {
             "dados": dados_pendulo,
-            "x_label": "periodo",
-            "y_label": "gravidade",
             "titulo": "Pêndulo Simples",
             "teoria": (
                 "Para pequenas oscilações, o período de um pêndulo simples depende do "
@@ -86,8 +119,6 @@ def obter_configuracao_experimento(experimento):
         },
         "plano": {
             "dados": dados_plano,
-            "x_label": "tempo",
-            "y_label": "gravidade",
             "titulo": "Plano Inclinado",
             "teoria": (
                 "Em um plano inclinado ideal, a componente da aceleração paralela ao plano "
@@ -97,6 +128,79 @@ def obter_configuracao_experimento(experimento):
         },
     }
     return configuracoes.get(experimento)
+
+
+def gerar_grafico_resultados(dados, estatisticas, titulo_experimento):
+    valores_g = [float(item["gravidade"]) for item in dados if "gravidade" in item]
+    if not valores_g:
+        return None
+
+    medicoes = list(range(1, len(valores_g) + 1))
+    arquivo = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+    caminho = arquivo.name
+    arquivo.close()
+
+    fig, ax = plt.subplots(figsize=(9, 5.2))
+    ax.plot(
+        medicoes,
+        valores_g,
+        marker="o",
+        linewidth=2,
+        markersize=7,
+        label="g experimental",
+    )
+
+    ax.axhline(
+        GRAVIDADE_REFERENCIA,
+        linestyle="--",
+        linewidth=2,
+        label=f"g de referência = {GRAVIDADE_REFERENCIA:.3f} m/s²",
+    )
+
+    if estatisticas["media"] is not None:
+        ax.axhline(
+            estatisticas["media"],
+            linestyle=":",
+            linewidth=2,
+            label=f"média experimental = {estatisticas['media']:.3f} m/s²",
+        )
+
+    for indice, valor in zip(medicoes, valores_g):
+        ax.annotate(
+            f"{valor:.2f}",
+            (indice, valor),
+            textcoords="offset points",
+            xytext=(0, 8),
+            ha="center",
+            fontsize=8,
+        )
+
+    ax.set_title(f"Resultado experimental — {titulo_experimento}", fontsize=14, fontweight="bold")
+    ax.set_xlabel("Número da medição")
+    ax.set_ylabel("Aceleração da gravidade, g (m/s²)")
+    ax.set_xticks(medicoes)
+    ax.grid(True, alpha=0.25)
+    ax.legend(loc="best", fontsize=9)
+
+    todos_valores = valores_g + [GRAVIDADE_REFERENCIA]
+    if estatisticas["media"] is not None:
+        todos_valores.append(estatisticas["media"])
+    minimo = min(todos_valores)
+    maximo = max(todos_valores)
+    margem = max((maximo - minimo) * 0.18, 0.6)
+    ax.set_ylim(minimo - margem, maximo + margem)
+
+    fig.tight_layout()
+    fig.savefig(caminho, dpi=180, bbox_inches="tight")
+    plt.close(fig)
+    return caminho
+
+
+def escrever_titulo_secao(pdf, titulo):
+    pdf.set_font("Arial", "B", 12)
+    pdf.set_text_color(7, 26, 47)
+    pdf.cell(0, 9, titulo, ln=True)
+    pdf.set_text_color(0, 0, 0)
 
 
 @app.route("/")
@@ -138,13 +242,7 @@ def queda_livre():
         return "Altura e tempo devem ser maiores que zero.", 400
 
     g = 2 * altura / (tempo**2)
-    dados_queda.append(
-        {
-            "altura": altura,
-            "tempo": tempo,
-            "gravidade": round(g, 4),
-        }
-    )
+    dados_queda.append({"altura": altura, "tempo": tempo, "gravidade": round(g, 4)})
     return redirect("/")
 
 
@@ -157,13 +255,7 @@ def pendulo():
         return "Comprimento e período devem ser maiores que zero.", 400
 
     g = (4 * math.pi**2 * comprimento) / (periodo**2)
-    dados_pendulo.append(
-        {
-            "comprimento": comprimento,
-            "periodo": periodo,
-            "gravidade": round(g, 4),
-        }
-    )
+    dados_pendulo.append({"comprimento": comprimento, "periodo": periodo, "gravidade": round(g, 4)})
     return redirect("/")
 
 
@@ -202,7 +294,6 @@ def limpar_experimento(experimento):
         dados_plano.clear()
     else:
         return jsonify({"erro": "Experimento inválido"}), 404
-
     return redirect("/")
 
 
@@ -212,10 +303,12 @@ def api_estatisticas(experimento):
     if not configuracao:
         return jsonify({"erro": "Experimento inválido"}), 404
 
+    estatisticas = calcular_estatisticas(configuracao["dados"])
     return jsonify(
         {
             "experimento": experimento,
-            "estatisticas": calcular_estatisticas(configuracao["dados"]),
+            "estatisticas": estatisticas,
+            "interpretacao": interpretar_resultado(estatisticas),
         }
     )
 
@@ -234,88 +327,97 @@ def gerar_pdf(experimento):
 
     dados = configuracao["dados"]
     estatisticas = calcular_estatisticas(dados)
-    caminho_grafico = None
-
-    if dados:
-        x_label = configuracao["x_label"]
-        y_label = configuracao["y_label"]
-        x = [d[x_label] for d in dados if x_label in d]
-        y = [d[y_label] for d in dados if y_label in d]
-
-        if x and y and len(x) == len(y):
-            caminho_grafico = "grafico.png"
-            plt.figure()
-            plt.plot(x, y, marker="o")
-            plt.title(f"{y_label.title()} em função de {x_label.title()}")
-            plt.xlabel(x_label.title())
-            plt.ylabel(y_label.title())
-            plt.grid(True)
-            plt.tight_layout()
-            plt.savefig(caminho_grafico)
-            plt.close()
+    interpretacao = interpretar_resultado(estatisticas)
+    caminho_grafico = gerar_grafico_resultados(dados, estatisticas, configuracao["titulo"])
 
     pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
-    pdf.set_font("Arial", "B", 14)
-    pdf.cell(0, 10, f"Relatório Experimental - {configuracao['titulo']}", ln=True)
 
+    pdf.set_fill_color(7, 26, 47)
+    pdf.rect(0, 0, 210, 32, "F")
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font("Arial", "B", 16)
+    pdf.set_xy(12, 8)
+    pdf.cell(0, 8, "Física Web", ln=True)
+    pdf.set_x(12)
     pdf.set_font("Arial", "", 11)
-    pdf.cell(0, 8, f"Turma: {grupo.get('turma', '')} - Série: {grupo.get('serie', '')}", ln=True)
-    pdf.cell(0, 8, "Integrantes:", ln=True)
-    for nome in grupo.get("nomes", []):
-        if nome:
-            pdf.cell(0, 7, f"- {nome}", ln=True)
+    pdf.cell(0, 7, f"Relatório Experimental — {configuracao['titulo']}", ln=True)
+    pdf.set_text_color(0, 0, 0)
+    pdf.set_y(39)
 
-    pdf.ln(4)
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, 9, "Referencial Teórico", ln=True)
     pdf.set_font("Arial", "", 10)
-    pdf.multi_cell(0, 7, configuracao["teoria"])
+    pdf.cell(0, 7, f"Turma: {grupo.get('turma', '')}    Série: {grupo.get('serie', '')}", ln=True)
+    integrantes = [nome for nome in grupo.get("nomes", []) if nome]
+    if integrantes:
+        pdf.multi_cell(0, 6, "Integrantes: " + ", ".join(integrantes))
 
-    pdf.ln(4)
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, 9, "Análise Estatística Automática", ln=True)
+    pdf.ln(3)
+    escrever_titulo_secao(pdf, "1. Referencial teórico")
     pdf.set_font("Arial", "", 10)
+    pdf.multi_cell(0, 6, configuracao["teoria"])
+
+    pdf.ln(3)
+    escrever_titulo_secao(pdf, "2. Resultado principal")
 
     if estatisticas["n"] == 0:
-        pdf.multi_cell(0, 7, "Ainda não há medidas registradas para análise estatística.")
+        pdf.set_font("Arial", "", 10)
+        pdf.multi_cell(0, 7, "Ainda não há medidas registradas para análise.")
     else:
-        linhas_estatisticas = [
-            ("Número de medidas", estatisticas["n"]),
-            ("Gravidade de referência (m/s2)", f"{estatisticas['gravidade_referencia']:.5f}"),
-            ("Média experimental de g (m/s2)", f"{estatisticas['media']:.4f}"),
-            ("Desvio padrão amostral (m/s2)", f"{estatisticas['desvio_padrao']:.4f}"),
-            ("Erro percentual médio", f"{estatisticas['erro_percentual']:.2f}%"),
-            ("Qualidade experimental", estatisticas["qualidade"]),
-        ]
-
-        for rotulo, valor in linhas_estatisticas:
-            pdf.cell(85, 8, str(rotulo), border=1)
-            pdf.cell(85, 8, str(valor), border=1, ln=True)
-
-    if dados:
-        pdf.ln(6)
+        pdf.set_fill_color(235, 244, 255)
         pdf.set_font("Arial", "B", 12)
-        pdf.cell(0, 9, "Dados Experimentais", ln=True)
-        pdf.set_font("Arial", "", 9)
+        pdf.cell(95, 12, f"g médio = {estatisticas['media']:.4f} m/s2", border=0, fill=True)
+        pdf.cell(95, 12, f"Erro = {estatisticas['erro_percentual']:.2f}%", border=0, ln=True, fill=True)
+        pdf.set_font("Arial", "", 10)
+        pdf.cell(95, 10, f"Referência = {GRAVIDADE_REFERENCIA:.5f} m/s2", border=0, fill=True)
+        pdf.cell(95, 10, f"Qualidade = {estatisticas['qualidade']}", border=0, ln=True, fill=True)
 
-        colunas = list(dados[0].keys())
-        largura = max(25, min(45, 180 / max(len(colunas), 1)))
-
-        for coluna in colunas:
-            pdf.cell(largura, 8, coluna.title(), border=1)
-        pdf.ln()
-
-        for entrada in dados:
-            for coluna in colunas:
-                pdf.cell(largura, 8, str(entrada.get(coluna, "")), border=1)
-            pdf.ln()
+        pdf.ln(4)
+        pdf.set_font("Arial", "", 10)
+        pdf.multi_cell(0, 6, interpretacao)
 
     if caminho_grafico and os.path.exists(caminho_grafico):
-        pdf.ln(8)
-        pdf.set_font("Arial", "B", 12)
-        pdf.cell(0, 9, "Representação Gráfica", ln=True)
-        pdf.image(caminho_grafico, x=15, w=175)
+        pdf.ln(4)
+        escrever_titulo_secao(pdf, "3. Leitura visual dos resultados")
+        pdf.set_font("Arial", "", 9)
+        pdf.multi_cell(
+            0,
+            5,
+            "Cada ponto representa uma medição de g. A linha tracejada indica o valor de referência e a linha pontilhada mostra a média experimental. Quanto mais próximos os pontos estiverem da referência, menor é o erro do experimento.",
+        )
+        pdf.ln(2)
+        pdf.image(caminho_grafico, x=15, w=180)
+
+    if dados:
+        pdf.ln(5)
+        escrever_titulo_secao(pdf, "4. Indicadores estatísticos")
+        pdf.set_font("Arial", "", 9)
+        linhas_estatisticas = [
+            ("Número de medidas", estatisticas["n"]),
+            ("Média experimental de g (m/s2)", f"{estatisticas['media']:.4f}"),
+            ("Valor mínimo de g (m/s2)", f"{estatisticas['minimo']:.4f}"),
+            ("Valor máximo de g (m/s2)", f"{estatisticas['maximo']:.4f}"),
+            ("Desvio padrão amostral (m/s2)", f"{estatisticas['desvio_padrao']:.4f}"),
+            ("Erro percentual médio", f"{estatisticas['erro_percentual']:.2f}%"),
+        ]
+        for rotulo, valor in linhas_estatisticas:
+            pdf.cell(105, 7, str(rotulo), border=1)
+            pdf.cell(75, 7, str(valor), border=1, ln=True)
+
+        pdf.ln(5)
+        escrever_titulo_secao(pdf, "5. Dados experimentais")
+        pdf.set_font("Arial", "", 8)
+        colunas = list(dados[0].keys())
+        largura = 180 / max(len(colunas), 1)
+        for coluna in colunas:
+            pdf.set_font("Arial", "B", 8)
+            pdf.cell(largura, 7, coluna.title(), border=1)
+        pdf.ln()
+        pdf.set_font("Arial", "", 8)
+        for entrada in dados:
+            for coluna in colunas:
+                pdf.cell(largura, 7, str(entrada.get(coluna, "")), border=1)
+            pdf.ln()
 
     buffer = io.BytesIO()
     conteudo_pdf = pdf.output(dest="S")
@@ -323,6 +425,12 @@ def gerar_pdf(experimento):
         conteudo_pdf = conteudo_pdf.encode("latin-1")
     buffer.write(conteudo_pdf)
     buffer.seek(0)
+
+    if caminho_grafico and os.path.exists(caminho_grafico):
+        try:
+            os.remove(caminho_grafico)
+        except OSError:
+            pass
 
     return send_file(
         buffer,
