@@ -2,35 +2,30 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Laboratório de Física Acessível</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-    }
-    header img {
-      width: 200px;
-    }
-    section {
-      margin-top: 30px;
-      padding: 15px;
-      border: 1px solid #ccc;
-      border-radius: 10px;
-    }
-    table {
-      width: 100%;
-      margin-top: 10px;
-      border-collapse: collapse;
-    }
-    th, td {
-      border: 1px solid #aaa;
-      padding: 6px;
-      text-align: center;
-    }
-    .audio-toggle {
-      position: fixed;
-      top: 20px;
-      right: 20px;
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    header img { width: 200px; }
+    section { margin-top: 30px; padding: 15px; border: 1px solid #ccc; border-radius: 10px; }
+    table { width: 100%; margin-top: 10px; border-collapse: collapse; }
+    th, td { border: 1px solid #aaa; padding: 6px; text-align: center; }
+    .audio-toggle { position: fixed; top: 20px; right: 20px; }
+    .accessibility-panel { background: #f5f8fc; border: 2px solid #1f5f99; }
+    .accessibility-panel select, .accessibility-panel button { min-height: 42px; font-size: 16px; padding: 8px; }
+    .accessibility-panel label { display: block; font-weight: bold; margin-bottom: 8px; }
+    .accessibility-status { margin-top: 12px; font-weight: bold; }
+    body.high-contrast { background: #000; color: #fff; }
+    body.high-contrast section { background: #000; border-color: #fff; }
+    body.high-contrast input, body.high-contrast select, body.high-contrast button { background: #000; color: #fff; border: 2px solid #fff; }
+    body.large-text { font-size: 125%; }
+    body.large-controls input, body.large-controls button, body.large-controls select, body.large-controls a { min-height: 48px; font-size: 18px; margin: 4px; }
+    body.simplified section p, body.simplified .accessibility-help { max-width: 65ch; line-height: 1.7; }
+    @media (max-width: 700px) {
+      body { margin: 12px; }
+      .audio-toggle { position: static; width: 100%; margin: 10px 0; min-height: 48px; }
+      input, button, select { max-width: 100%; margin: 4px 0; min-height: 42px; }
+      table { display: block; overflow-x: auto; }
     }
   </style>
 </head>
@@ -43,15 +38,37 @@
 
 <button id="toggle-voice" class="audio-toggle">🔊 Desativar Áudio</button>
 
+<section class="accessibility-panel" aria-labelledby="acessibilidade-titulo">
+  <h2 id="acessibilidade-titulo">Perfil de Acessibilidade</h2>
+  <p class="accessibility-help">A escolha é voluntária. O Física Web usa esta opção apenas para ativar recursos de acessibilidade no seu navegador. Você também pode escolher “Personalizado” ou “Prefiro não informar”.</p>
+  <label for="perfil-acessibilidade">Qual experiência de acesso você prefere?</label>
+  <select id="perfil-acessibilidade">
+    <option value="padrao">Padrão / Prefiro não informar</option>
+    <option value="visual">Deficiência visual</option>
+    <option value="auditiva">Deficiência auditiva</option>
+    <option value="motora">Deficiência motora</option>
+    <option value="cognitiva">Deficiência intelectual ou cognitiva</option>
+    <option value="multipla">Múltiplas necessidades</option>
+    <option value="personalizado">Personalizado</option>
+  </select>
+  <button type="button" id="aplicar-perfil">Aplicar perfil</button>
+  <div id="recursos-personalizados" hidden>
+    <p><strong>Escolha os recursos:</strong></p>
+    <label><input type="checkbox" id="recurso-audio"> Leitura e audiodescrição</label>
+    <label><input type="checkbox" id="recurso-contraste"> Alto contraste</label>
+    <label><input type="checkbox" id="recurso-texto"> Texto ampliado</label>
+    <label><input type="checkbox" id="recurso-controles"> Controles ampliados</label>
+    <label><input type="checkbox" id="recurso-simplificado"> Leitura simplificada e guiada</label>
+    <label><input type="checkbox" id="recurso-libras"> Libras (integração em desenvolvimento)</label>
+  </div>
+  <p id="status-acessibilidade" class="accessibility-status" role="status" aria-live="polite"></p>
+</section>
+
 <section>
   <h2>Cadastro do Grupo</h2>
   <form method="POST" action="/salvar-grupo">
-    {% for i in range(1, 6) %}
-      <input name="nome{{ i }}" placeholder="Nome {{ i }}">
-    {% endfor %}
-    <br>
-    <input name="turma" placeholder="Turma">
-    <input name="serie" placeholder="Série">
+    {% for i in range(1, 6) %}<input name="nome{{ i }}" placeholder="Nome {{ i }}">{% endfor %}<br>
+    <input name="turma" placeholder="Turma"><input name="serie" placeholder="Série">
     <button type="submit" onfocus="falar('Salvar grupo')">Salvar Grupo</button>
   </form>
 </section>
@@ -59,87 +76,108 @@
 <section>
   <h2>Experimento: Queda Livre</h2>
   <form method="POST" action="/queda-livre">
-    <input name="altura" placeholder="Altura (m)" required>
-    <input name="tempo" placeholder="Tempo (s)" required>
+    <input name="altura" placeholder="Altura (m)" required><input name="tempo" placeholder="Tempo (s)" required>
     <button type="submit" onfocus="falar('Registrar queda livre')">Registrar</button>
   </form>
-  <form method="POST" action="/limpar-queda">
-    <button type="submit" onfocus="falar('Limpar dados da queda livre')">Limpar Dados</button>
-  </form>
-  <table>
-    <tr><th>Altura (m)</th><th>Tempo (s)</th><th>Gravidade (m/s²)</th></tr>
-    {% for d in dados_queda %}
-      <tr><td>{{ d.altura }}</td><td>{{ d.tempo }}</td><td>{{ d.gravidade }}</td></tr>
-    {% endfor %}
-  </table>
+  <form method="POST" action="/limpar-queda"><button type="submit" onfocus="falar('Limpar dados da queda livre')">Limpar Dados</button></form>
+  <table><tr><th>Altura (m)</th><th>Tempo (s)</th><th>Gravidade (m/s²)</th></tr>{% for d in dados_queda %}<tr><td>{{ d.altura }}</td><td>{{ d.tempo }}</td><td>{{ d.gravidade }}</td></tr>{% endfor %}</table>
   <a href="/relatorio/queda" onfocus="falar('Gerar relatório da queda livre')">📄 Gerar Relatório PDF</a>
 </section>
 
 <section>
   <h2>Experimento: Pêndulo Simples</h2>
   <form method="POST" action="/pendulo">
-    <input name="comprimento" placeholder="Comprimento (m)" required>
-    <input name="periodo" placeholder="Período (s)" required>
+    <input name="comprimento" placeholder="Comprimento (m)" required><input name="periodo" placeholder="Período (s)" required>
     <button type="submit" onfocus="falar('Registrar pêndulo simples')">Registrar</button>
   </form>
-  <form method="POST" action="/limpar-pendulo">
-    <button type="submit" onfocus="falar('Limpar dados do pêndulo')">Limpar Dados</button>
-  </form>
-  <table>
-    <tr><th>Comprimento (m)</th><th>Período (s)</th><th>Gravidade (m/s²)</th></tr>
-    {% for d in dados_pendulo %}
-      <tr><td>{{ d.comprimento }}</td><td>{{ d.periodo }}</td><td>{{ d.gravidade }}</td></tr>
-    {% endfor %}
-  </table>
+  <form method="POST" action="/limpar-pendulo"><button type="submit" onfocus="falar('Limpar dados do pêndulo')">Limpar Dados</button></form>
+  <table><tr><th>Comprimento (m)</th><th>Período (s)</th><th>Gravidade (m/s²)</th></tr>{% for d in dados_pendulo %}<tr><td>{{ d.comprimento }}</td><td>{{ d.periodo }}</td><td>{{ d.gravidade }}</td></tr>{% endfor %}</table>
   <a href="/relatorio/pendulo" onfocus="falar('Gerar relatório do pêndulo')">📄 Gerar Relatório PDF</a>
 </section>
 
 <section>
   <h2>Experimento: Plano Inclinado</h2>
   <form method="POST" action="/plano">
-    <input name="angulo" placeholder="Ângulo (°)" required>
-    <input name="distancia" placeholder="Distância (m)" required>
-    <input name="tempo" placeholder="Tempo (s)" required>
+    <input name="angulo" placeholder="Ângulo (°)" required><input name="distancia" placeholder="Distância (m)" required><input name="tempo" placeholder="Tempo (s)" required>
     <button type="submit" onfocus="falar('Registrar plano inclinado')">Registrar</button>
   </form>
-  <form method="POST" action="/limpar-plano">
-    <button type="submit" onfocus="falar('Limpar dados do plano inclinado')">Limpar Dados</button>
-  </form>
-  <table>
-    <tr><th>Ângulo (°)</th><th>Distância (m)</th><th>Tempo (s)</th><th>Gravidade (m/s²)</th></tr>
-    {% for d in dados_plano %}
-      <tr>
-        <td>{{ d.angulo }}</td>
-        <td>{{ d.distancia }}</td>
-        <td>{{ d.tempo }}</td>
-        <td>{{ d.gravidade }}</td>
-      </tr>
-    {% endfor %}
-  </table>
+  <form method="POST" action="/limpar-plano"><button type="submit" onfocus="falar('Limpar dados do plano inclinado')">Limpar Dados</button></form>
+  <table><tr><th>Ângulo (°)</th><th>Distância (m)</th><th>Tempo (s)</th><th>Gravidade (m/s²)</th></tr>{% for d in dados_plano %}<tr><td>{{ d.angulo }}</td><td>{{ d.distancia }}</td><td>{{ d.tempo }}</td><td>{{ d.gravidade }}</td></tr>{% endfor %}</table>
   <a href="/relatorio/plano" onfocus="falar('Gerar relatório do plano inclinado')">📄 Gerar Relatório PDF</a>
 </section>
 
 <script>
   let vozAtiva = true;
   function falar(texto) {
-    if (!vozAtiva) return;
+    if (!vozAtiva || !('speechSynthesis' in window)) return;
     const synth = window.speechSynthesis;
     const utter = new SpeechSynthesisUtterance(texto);
     utter.lang = 'pt-BR';
-    synth.cancel();
-    synth.speak(utter);
+    synth.cancel(); synth.speak(utter);
   }
+
+  const perfil = document.getElementById('perfil-acessibilidade');
+  const personalizados = document.getElementById('recursos-personalizados');
+  const status = document.getElementById('status-acessibilidade');
+
+  function limparClasses() {
+    document.body.classList.remove('high-contrast', 'large-text', 'large-controls', 'simplified');
+  }
+
+  function aplicarRecursos(config) {
+    limparClasses();
+    vozAtiva = !!config.audio;
+    if (config.contraste) document.body.classList.add('high-contrast');
+    if (config.texto) document.body.classList.add('large-text');
+    if (config.controles) document.body.classList.add('large-controls');
+    if (config.simplificado) document.body.classList.add('simplified');
+    document.getElementById('toggle-voice').textContent = vozAtiva ? '🔊 Desativar Áudio' : '🔇 Ativar Áudio';
+    if (config.libras) status.textContent = 'Perfil aplicado. Recurso de Libras selecionado; integração VLibras será adicionada na próxima etapa.';
+    else status.textContent = 'Perfil de acessibilidade aplicado neste dispositivo.';
+  }
+
+  function configuracaoDoPerfil(valor) {
+    if (valor === 'visual') return {audio:true, contraste:true, texto:true, controles:true};
+    if (valor === 'auditiva') return {audio:false, texto:false, controles:false, libras:true};
+    if (valor === 'motora') return {audio:true, controles:true, texto:false};
+    if (valor === 'cognitiva') return {audio:true, texto:true, controles:true, simplificado:true};
+    if (valor === 'multipla') return {audio:true, contraste:true, texto:true, controles:true, simplificado:true, libras:true};
+    if (valor === 'personalizado') return {
+      audio: document.getElementById('recurso-audio').checked,
+      contraste: document.getElementById('recurso-contraste').checked,
+      texto: document.getElementById('recurso-texto').checked,
+      controles: document.getElementById('recurso-controles').checked,
+      simplificado: document.getElementById('recurso-simplificado').checked,
+      libras: document.getElementById('recurso-libras').checked
+    };
+    return {audio:true};
+  }
+
+  perfil.addEventListener('change', () => { personalizados.hidden = perfil.value !== 'personalizado'; });
+  document.getElementById('aplicar-perfil').addEventListener('click', () => {
+    const config = configuracaoDoPerfil(perfil.value);
+    localStorage.setItem('fisicaWebPerfil', perfil.value);
+    localStorage.setItem('fisicaWebRecursos', JSON.stringify(config));
+    aplicarRecursos(config);
+    falar('Perfil de acessibilidade aplicado.');
+  });
 
   window.onload = () => {
-    falar("Bem-vindo ao Laboratório de Física Acessível. Use Tab para navegar pelos botões.");
-  }
+    const salvo = localStorage.getItem('fisicaWebPerfil');
+    const recursosSalvos = localStorage.getItem('fisicaWebRecursos');
+    if (salvo) perfil.value = salvo;
+    personalizados.hidden = perfil.value !== 'personalizado';
+    if (recursosSalvos) {
+      try { aplicarRecursos(JSON.parse(recursosSalvos)); } catch (e) { aplicarRecursos({audio:true}); }
+    }
+    falar('Bem-vindo ao Laboratório de Física Acessível. O perfil de acessibilidade pode ser configurado no início da página.');
+  };
 
-  document.getElementById("toggle-voice").onclick = () => {
+  document.getElementById('toggle-voice').onclick = () => {
     vozAtiva = !vozAtiva;
-    document.getElementById("toggle-voice").textContent = vozAtiva ? "🔊 Desativar Áudio" : "🔇 Ativar Áudio";
-    if (vozAtiva) falar("Áudio ativado.");
+    document.getElementById('toggle-voice').textContent = vozAtiva ? '🔊 Desativar Áudio' : '🔇 Ativar Áudio';
+    if (vozAtiva) falar('Áudio ativado.');
   };
 </script>
-
 </body>
 </html>
