@@ -16,10 +16,20 @@
     return grupoId ? `/?grupo_id=${encodeURIComponent(grupoId)}#experimentos` : '/#experimentos';
   }
 
+  function ocultar(el) {
+    if (!el) return;
+    el.hidden = true;
+    el.style.setProperty('display', 'none', 'important');
+  }
+
+  function mostrar(el) {
+    if (!el) return;
+    el.hidden = false;
+    el.style.removeProperty('display');
+  }
+
   function esconderConteudoCatalogo(artigo) {
-    artigo.querySelectorAll('form,.actions,.table-wrap,.accessible-report-controls').forEach((el) => {
-      el.hidden = true;
-    });
+    artigo.querySelectorAll('form,.actions,.table-wrap,.accessible-report-controls,.async-status').forEach(ocultar);
     if (!artigo.querySelector('.open-experiment')) {
       const link = document.createElement('a');
       link.className = 'open-experiment';
@@ -50,7 +60,13 @@
     const doc = new DOMParser().parseFromString(html, 'text/html');
     const nova = doc.querySelector(`[data-experiment="${chave}"] .table-wrap`);
     const atual = document.querySelector(`[data-experiment="${chave}"] .table-wrap`);
-    if (nova && atual) atual.replaceWith(nova);
+    if (nova && atual) {
+      nova.hidden = false;
+      nova.style.removeProperty('display');
+      atual.replaceWith(nova);
+      return true;
+    }
+    return false;
   }
 
   function mensagem(artigo, texto, tipo = 'ok') {
@@ -60,8 +76,9 @@
       status.className = 'async-status';
       status.setAttribute('role', 'status');
       status.setAttribute('aria-live', 'polite');
-      artigo.querySelector('form')?.insertAdjacentElement('afterend', status);
+      artigo.querySelector('form.measure')?.insertAdjacentElement('afterend', status);
     }
+    mostrar(status);
     status.dataset.tipo = tipo;
     status.textContent = texto;
   }
@@ -69,61 +86,85 @@
   async function executarPostSemRecarregar(form, artigo, opcoes = {}) {
     const botao = form.querySelector('button[type="submit"]');
     const textoOriginal = botao?.textContent;
-    if (botao) { botao.disabled = true; botao.textContent = opcoes.processando || 'Processando…'; }
+    if (botao) {
+      botao.disabled = true;
+      botao.textContent = opcoes.processando || 'Processando…';
+    }
     mensagem(artigo, opcoes.status || 'Salvando…');
+
     try {
-      const resposta = await fetch(form.action, { method: 'POST', body: new FormData(form) });
+      const resposta = await fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'X-Fisica-Web-Async': '1' },
+        redirect: 'follow',
+        cache: 'no-store'
+      });
       const html = await resposta.text();
       if (!resposta.ok) throw new Error(html || `Erro ${resposta.status}`);
-      atualizarTabelaDoHtml(html, artigo.dataset.experiment);
+
+      const atualizou = atualizarTabelaDoHtml(html, artigo.dataset.experiment);
+      if (!atualizou) throw new Error('A tabela atualizada não foi encontrada na resposta.');
+
       if (opcoes.resetar) {
         form.reset();
         const hidden = form.querySelector('input[name="grupo_id"]');
         if (hidden) hidden.value = grupoId;
       }
+
       mensagem(artigo, opcoes.sucesso || 'Operação concluída.');
       document.dispatchEvent(new CustomEvent('fisicaweb:experiment-updated'));
     } catch (erro) {
       mensagem(artigo, opcoes.erro || 'Não foi possível concluir a operação.', 'erro');
       console.error('Física Web — operação assíncrona:', erro);
     } finally {
-      if (botao) { botao.disabled = false; botao.textContent = textoOriginal; }
+      if (botao) {
+        botao.disabled = false;
+        botao.textContent = textoOriginal;
+      }
     }
   }
 
   function modoFocado(chave) {
     document.body.classList.add('experiment-focus-mode');
-    document.getElementById('ambientes')?.setAttribute('hidden', '');
-    document.getElementById('contexto')?.setAttribute('hidden', '');
+    ocultar(document.getElementById('ambientes'));
+    ocultar(document.getElementById('contexto'));
     document.getElementById('acessibilidade')?.classList.add('focus-accessibility');
 
     artigos.forEach((artigo) => {
-      if (artigo.dataset.experiment !== chave) artigo.hidden = true;
+      if (artigo.dataset.experiment !== chave) ocultar(artigo);
+      else {
+        mostrar(artigo);
+        artigo.querySelectorAll('form,.actions,.table-wrap,.accessible-report-controls').forEach(mostrar);
+      }
     });
 
     const ativo = artigos.find((a) => a.dataset.experiment === chave);
     if (!ativo) return modoCatalogo();
+
     ativo.classList.add('experiment-active');
     adicionarCabecalhoFoco(ativo);
 
-    const formulario = ativo.querySelector('form:not([action*="limpar"])');
+    const formulario = ativo.querySelector('form.measure');
     if (formulario) {
       formulario.addEventListener('submit', (evento) => {
         evento.preventDefault();
+        evento.stopPropagation();
         executarPostSemRecarregar(formulario, ativo, {
           processando: 'Registrando…',
           status: 'Salvando medição…',
-          sucesso: 'Medição registrada com sucesso.',
+          sucesso: 'Medição registrada e salva. A tabela foi atualizada.',
           erro: 'Não foi possível registrar a medição. Verifique os valores e tente novamente.',
           resetar: true,
         });
-      });
+      }, true);
     }
 
     const limpar = ativo.querySelector('form[action*="limpar"]');
     if (limpar) {
       limpar.addEventListener('submit', (evento) => {
         evento.preventDefault();
+        evento.stopPropagation();
         executarPostSemRecarregar(limpar, ativo, {
           processando: 'Limpando…',
           status: 'Limpando medições…',
@@ -131,18 +172,35 @@
           erro: 'Não foi possível limpar as medições.',
           resetar: false,
         });
-      });
+      }, true);
     }
   }
 
   const style = document.createElement('style');
   style.textContent = `
+    [hidden]{display:none!important}
     .open-experiment{display:inline-flex;margin-top:14px;min-height:46px;align-items:center;justify-content:center;padding:10px 14px;border-radius:10px;background:var(--primary);color:#fff;text-decoration:none;font-weight:750}
-    .catalog-mode .experiment{min-height:190px;display:flex;flex-direction:column}.catalog-mode .open-experiment{margin-top:auto}
-    .experiment-focus-mode .layout{grid-template-columns:1fr;max-width:900px;margin:auto}.experiment-focus-mode .focus-accessibility{display:none}.experiment-focus-mode #experimentos>.section-head,.experiment-focus-mode #experimentos>.workflow{display:none}.experiment-focus-mode .experiments{display:block}.experiment-focus-mode .experiment-active{max-width:820px;margin:0 auto;border:0;box-shadow:none;padding:8px 0}.experiment-focus-mode .experiment-active form{max-width:560px}.experiment-focus-mode .table-wrap{margin-top:24px}.focus-toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--border)}.focus-toolbar a{text-decoration:none;font-weight:750}.focus-toolbar span{font-size:.85rem;color:var(--muted)}.async-status{padding:10px 12px;border-radius:10px;background:var(--surface2);font-weight:650}.async-status[data-tipo="erro"]{background:#fff0f1;color:#8a2632}
+    .catalog-mode .experiment{min-height:190px;display:flex;flex-direction:column}
+    .catalog-mode .open-experiment{margin-top:auto}
+    .catalog-mode .experiment>form,.catalog-mode .experiment>.actions,.catalog-mode .experiment>.table-wrap,.catalog-mode .experiment>.accessible-report-controls{display:none!important}
+    .experiment-focus-mode #inicio,.experiment-focus-mode #coleta{display:none!important}
+    .experiment-focus-mode #ambientes,.experiment-focus-mode #contexto{display:none!important}
+    .experiment-focus-mode .focus-accessibility{display:none}
+    .experiment-focus-mode #experimentos>.section-title{display:none}
+    .experiment-focus-mode .experiments{display:block}
+    .experiment-focus-mode .experiment-active{max-width:820px;margin:0 auto;border:0;box-shadow:none;padding:8px 0}
+    .experiment-focus-mode .experiment-active form.measure{display:grid!important;max-width:560px}
+    .experiment-focus-mode .experiment-active>.actions{display:flex!important}
+    .experiment-focus-mode .experiment-active>.table-wrap{display:block!important;margin-top:24px}
+    .focus-toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+    .focus-toolbar a{text-decoration:none;font-weight:750}
+    .focus-toolbar span{font-size:.85rem;color:var(--muted)}
+    .async-status{padding:10px 12px;border-radius:10px;background:var(--surface2);font-weight:650}
+    .async-status[data-tipo="erro"]{background:#fff0f1;color:#8a2632}
     @media(max-width:600px){.experiment-focus-mode #experimentos{padding:14px}.experiment-focus-mode .experiment-active{padding:0}.focus-toolbar{align-items:flex-start;flex-direction:column}.catalog-mode .experiment{min-height:160px}}
   `;
   document.head.appendChild(style);
 
-  if (foco && validos.has(foco)) modoFocado(foco); else modoCatalogo();
+  if (foco && validos.has(foco)) modoFocado(foco);
+  else modoCatalogo();
 })();
