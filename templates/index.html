@@ -6,20 +6,22 @@
   <title>Laboratório de Física Acessível</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; }
-    header img { width: 200px; }
     section { margin-top: 30px; padding: 15px; border: 1px solid #ccc; border-radius: 10px; }
     table { width: 100%; margin-top: 10px; border-collapse: collapse; }
     th, td { border: 1px solid #aaa; padding: 6px; text-align: center; }
+    input, select, button { padding: 7px; margin: 4px 2px; }
     .audio-toggle { position: fixed; top: 20px; right: 20px; }
     .accessibility-panel { background: #f5f8fc; border: 2px solid #1f5f99; }
     .accessibility-panel select, .accessibility-panel button { min-height: 42px; font-size: 16px; padding: 8px; }
     .accessibility-panel label { display: block; font-weight: bold; margin-bottom: 8px; }
     .accessibility-status { margin-top: 12px; font-weight: bold; }
     .libras-help { margin-top: 10px; padding: 10px; background: #eef6ff; border-left: 4px solid #1f5f99; }
+    .context-status { background: #eef8ef; border: 1px solid #7ca67f; padding: 12px; border-radius: 8px; margin: 12px 0; }
+    .context-grid { display: grid; grid-template-columns: repeat(3, minmax(180px, 1fr)); gap: 8px; }
     body.high-contrast { background: #000; color: #fff; }
     body.high-contrast section { background: #000; border-color: #fff; }
     body.high-contrast input, body.high-contrast select, body.high-contrast button { background: #000; color: #fff; border: 2px solid #fff; }
-    body.high-contrast .libras-help { background: #000; border-color: #fff; }
+    body.high-contrast .libras-help, body.high-contrast .context-status { background: #000; border-color: #fff; }
     body.large-text { font-size: 125%; }
     body.large-controls input, body.large-controls button, body.large-controls select, body.large-controls a { min-height: 48px; font-size: 18px; margin: 4px; }
     body.simplified section p, body.simplified .accessibility-help { max-width: 65ch; line-height: 1.7; }
@@ -27,6 +29,7 @@
       body { margin: 12px; }
       .audio-toggle { position: static; width: 100%; margin: 10px 0; min-height: 48px; }
       input, button, select { max-width: 100%; margin: 4px 0; min-height: 42px; }
+      .context-grid { grid-template-columns: 1fr; }
       table { display: block; overflow-x: auto; }
     }
   </style>
@@ -34,8 +37,8 @@
 <body>
 
 <header>
-  <img src="{{ url_for('static', filename='logo.png') }}" alt="Logomarca do Laboratório de Física Web" />
-  <h1>Laboratório de Física Acessível</h1>
+  <h1>Física Web — Laboratório de Física Acessível</h1>
+  <p>Experimentação, análise de dados e acessibilidade multimodal.</p>
 </header>
 
 <button id="toggle-voice" class="audio-toggle">🔊 Desativar Áudio</button>
@@ -68,52 +71,76 @@
 </section>
 
 <section>
-  <h2>Cadastro do Grupo</h2>
+  <h2>Contexto Escolar e Grupo Experimental</h2>
+  {% if contexto %}
+    <div class="context-status" role="status">
+      <strong>Grupo ativo salvo no Supabase.</strong><br>
+      Escola: {{ contexto.escola.nome if contexto.escola else '' }} ·
+      Série: {{ contexto.turma.serie_ano if contexto.turma else '' }} ·
+      Turma: {{ contexto.turma.turma if contexto.turma else '' }} ·
+      Grupo: {{ contexto.grupo.codigo_grupo if contexto.grupo else '' }}
+    </div>
+  {% endif %}
+  {% if mensagem_banco %}<p role="alert">{{ mensagem_banco }}</p>{% endif %}
   <form method="POST" action="/salvar-grupo">
-    {% for i in range(1, 6) %}<input name="nome{{ i }}" placeholder="Nome {{ i }}">{% endfor %}<br>
-    <input name="turma" placeholder="Turma"><input name="serie" placeholder="Série">
-    <button type="submit" onfocus="falar('Salvar grupo')">Salvar Grupo</button>
+    <div class="context-grid">
+      <input name="escola" placeholder="Nome da escola" required>
+      <input name="rede" placeholder="Rede (ex.: Estadual, Municipal, Privada)">
+      <input name="municipio" placeholder="Município">
+      <input name="estado" placeholder="UF (ex.: SP)" maxlength="2">
+      <input name="ano_letivo" placeholder="Ano letivo" inputmode="numeric" required>
+      <input name="serie" placeholder="Série / Ano" required>
+      <input name="turma" placeholder="Turma" required>
+      <input name="turno" placeholder="Turno">
+      <input name="componente_curricular" value="Física" placeholder="Componente curricular">
+      <input name="professor_responsavel" placeholder="Professor responsável">
+      <input name="codigo_grupo" value="Grupo 1" placeholder="Código do grupo">
+    </div>
+    <p><strong>Participantes</strong></p>
+    {% for i in range(1, 6) %}<input name="nome{{ i }}" placeholder="Participante {{ i }}">{% endfor %}<br>
+    <button type="submit" onfocus="falar('Salvar contexto escolar e grupo')">Salvar Contexto e Grupo</button>
   </form>
 </section>
 
 <section>
   <h2>Experimento: Queda Livre</h2>
   <form method="POST" action="/queda-livre">
-    <input name="altura" placeholder="Altura (m)" required><input name="tempo" placeholder="Tempo (s)" required>
+    <input type="hidden" name="grupo_id" value="{{ grupo_id }}">
+    <input name="altura" placeholder="Altura (m)" inputmode="decimal" required><input name="tempo" placeholder="Tempo (s)" inputmode="decimal" required>
     <button type="submit" onfocus="falar('Registrar queda livre')">Registrar</button>
   </form>
-  <form method="POST" action="/limpar-queda"><button type="submit" onfocus="falar('Limpar dados da queda livre')">Limpar Dados</button></form>
+  <form method="POST" action="/limpar-queda"><input type="hidden" name="grupo_id" value="{{ grupo_id }}"><button type="submit" onfocus="falar('Limpar dados da queda livre')">Limpar Dados</button></form>
   <table><tr><th>Altura (m)</th><th>Tempo (s)</th><th>Gravidade (m/s²)</th></tr>{% for d in dados_queda %}<tr><td>{{ d.altura }}</td><td>{{ d.tempo }}</td><td>{{ d.gravidade }}</td></tr>{% endfor %}</table>
-  <a href="/relatorio/queda" onfocus="falar('Gerar relatório da queda livre')">📄 Gerar Relatório PDF</a>
+  <a href="/relatorio/queda{% if grupo_id %}?grupo_id={{ grupo_id }}{% endif %}" onfocus="falar('Gerar relatório da queda livre')">📄 Gerar Relatório PDF</a>
 </section>
 
 <section>
   <h2>Experimento: Pêndulo Simples</h2>
   <form method="POST" action="/pendulo">
-    <input name="comprimento" placeholder="Comprimento (m)" required><input name="periodo" placeholder="Período (s)" required>
+    <input type="hidden" name="grupo_id" value="{{ grupo_id }}">
+    <input name="comprimento" placeholder="Comprimento (m)" inputmode="decimal" required><input name="periodo" placeholder="Período (s)" inputmode="decimal" required>
     <button type="submit" onfocus="falar('Registrar pêndulo simples')">Registrar</button>
   </form>
-  <form method="POST" action="/limpar-pendulo"><button type="submit" onfocus="falar('Limpar dados do pêndulo')">Limpar Dados</button></form>
+  <form method="POST" action="/limpar-pendulo"><input type="hidden" name="grupo_id" value="{{ grupo_id }}"><button type="submit" onfocus="falar('Limpar dados do pêndulo')">Limpar Dados</button></form>
   <table><tr><th>Comprimento (m)</th><th>Período (s)</th><th>Gravidade (m/s²)</th></tr>{% for d in dados_pendulo %}<tr><td>{{ d.comprimento }}</td><td>{{ d.periodo }}</td><td>{{ d.gravidade }}</td></tr>{% endfor %}</table>
-  <a href="/relatorio/pendulo" onfocus="falar('Gerar relatório do pêndulo')">📄 Gerar Relatório PDF</a>
+  <a href="/relatorio/pendulo{% if grupo_id %}?grupo_id={{ grupo_id }}{% endif %}" onfocus="falar('Gerar relatório do pêndulo')">📄 Gerar Relatório PDF</a>
 </section>
 
 <section>
   <h2>Experimento: Plano Inclinado</h2>
   <form method="POST" action="/plano">
-    <input name="angulo" placeholder="Ângulo (°)" required><input name="distancia" placeholder="Distância (m)" required><input name="tempo" placeholder="Tempo (s)" required>
+    <input type="hidden" name="grupo_id" value="{{ grupo_id }}">
+    <input name="angulo" placeholder="Ângulo (°)" inputmode="decimal" required><input name="distancia" placeholder="Distância (m)" inputmode="decimal" required><input name="tempo" placeholder="Tempo (s)" inputmode="decimal" required>
     <button type="submit" onfocus="falar('Registrar plano inclinado')">Registrar</button>
   </form>
-  <form method="POST" action="/limpar-plano"><button type="submit" onfocus="falar('Limpar dados do plano inclinado')">Limpar Dados</button></form>
+  <form method="POST" action="/limpar-plano"><input type="hidden" name="grupo_id" value="{{ grupo_id }}"><button type="submit" onfocus="falar('Limpar dados do plano inclinado')">Limpar Dados</button></form>
   <table><tr><th>Ângulo (°)</th><th>Distância (m)</th><th>Tempo (s)</th><th>Gravidade (m/s²)</th></tr>{% for d in dados_plano %}<tr><td>{{ d.angulo }}</td><td>{{ d.distancia }}</td><td>{{ d.tempo }}</td><td>{{ d.gravidade }}</td></tr>{% endfor %}</table>
-  <a href="/relatorio/plano" onfocus="falar('Gerar relatório do plano inclinado')">📄 Gerar Relatório PDF</a>
+  <a href="/relatorio/plano{% if grupo_id %}?grupo_id={{ grupo_id }}{% endif %}" onfocus="falar('Gerar relatório do plano inclinado')">📄 Gerar Relatório PDF</a>
 </section>
 
 <div vw class="enabled">
   <div vw-access-button class="active"></div>
-  <div vw-plugin-wrapper>
-    <div class="vw-plugin-top-wrapper"></div>
-  </div>
+  <div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div>
 </div>
 
 <script>
@@ -180,7 +207,7 @@
     if (recursosSalvos) {
       try { aplicarRecursos(JSON.parse(recursosSalvos)); } catch (e) { aplicarRecursos({audio:true}); }
     }
-    falar('Bem-vindo ao Laboratório de Física Acessível. O perfil de acessibilidade pode ser configurado no início da página.');
+    falar('Bem-vindo ao Física Web. Cadastre o contexto escolar e o grupo antes de iniciar as medições.');
   };
 
   document.getElementById('toggle-voice').onclick = () => {
@@ -190,8 +217,6 @@
   };
 </script>
 <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
-<script>
-  new window.VLibras.Widget('https://vlibras.gov.br/app');
-</script>
+<script>new window.VLibras.Widget('https://vlibras.gov.br/app');</script>
 </body>
 </html>
