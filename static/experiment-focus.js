@@ -66,24 +66,26 @@
     status.textContent = texto;
   }
 
-  async function enviarSemRecarregar(form, artigo) {
+  async function executarPostSemRecarregar(form, artigo, opcoes = {}) {
     const botao = form.querySelector('button[type="submit"]');
     const textoOriginal = botao?.textContent;
-    if (botao) { botao.disabled = true; botao.textContent = 'Registrando…'; }
-    mensagem(artigo, 'Salvando medição…');
+    if (botao) { botao.disabled = true; botao.textContent = opcoes.processando || 'Processando…'; }
+    mensagem(artigo, opcoes.status || 'Salvando…');
     try {
       const resposta = await fetch(form.action, { method: 'POST', body: new FormData(form) });
       const html = await resposta.text();
       if (!resposta.ok) throw new Error(html || `Erro ${resposta.status}`);
       atualizarTabelaDoHtml(html, artigo.dataset.experiment);
-      form.reset();
-      const hidden = form.querySelector('input[name="grupo_id"]');
-      if (hidden) hidden.value = grupoId;
-      mensagem(artigo, 'Medição registrada com sucesso.');
+      if (opcoes.resetar) {
+        form.reset();
+        const hidden = form.querySelector('input[name="grupo_id"]');
+        if (hidden) hidden.value = grupoId;
+      }
+      mensagem(artigo, opcoes.sucesso || 'Operação concluída.');
       document.dispatchEvent(new CustomEvent('fisicaweb:experiment-updated'));
     } catch (erro) {
-      mensagem(artigo, 'Não foi possível registrar a medição. Verifique os valores e tente novamente.', 'erro');
-      console.error('Física Web — medição assíncrona:', erro);
+      mensagem(artigo, opcoes.erro || 'Não foi possível concluir a operação.', 'erro');
+      console.error('Física Web — operação assíncrona:', erro);
     } finally {
       if (botao) { botao.disabled = false; botao.textContent = textoOriginal; }
     }
@@ -108,7 +110,27 @@
     if (formulario) {
       formulario.addEventListener('submit', (evento) => {
         evento.preventDefault();
-        enviarSemRecarregar(formulario, ativo);
+        executarPostSemRecarregar(formulario, ativo, {
+          processando: 'Registrando…',
+          status: 'Salvando medição…',
+          sucesso: 'Medição registrada com sucesso.',
+          erro: 'Não foi possível registrar a medição. Verifique os valores e tente novamente.',
+          resetar: true,
+        });
+      });
+    }
+
+    const limpar = ativo.querySelector('form[action*="limpar"]');
+    if (limpar) {
+      limpar.addEventListener('submit', (evento) => {
+        evento.preventDefault();
+        executarPostSemRecarregar(limpar, ativo, {
+          processando: 'Limpando…',
+          status: 'Limpando medições…',
+          sucesso: 'Medições removidas.',
+          erro: 'Não foi possível limpar as medições.',
+          resetar: false,
+        });
       });
     }
   }
