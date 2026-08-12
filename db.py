@@ -239,6 +239,35 @@ def salvar_resultado(grupo_id: str, chave_experimento: str, estatisticas: Dict[s
     client.table("resultados_experimentais").upsert(payload, on_conflict="experimento_id").execute()
 
 
+def salvar_relatorio(
+    grupo_id: str,
+    chave_experimento: str,
+    tipo_relatorio: str,
+    resumo: str,
+    parecer_pedagogico: str,
+    audiodescricao: str,
+    descricao_grafico: str,
+    versao: int = 1,
+) -> Dict[str, Any]:
+    """Persiste o relatório textual/multimodal vinculado ao experimento atual."""
+    client = get_supabase_client()
+    experimento = obter_ou_criar_experimento(grupo_id, chave_experimento)
+    payload = {
+        "experimento_id": experimento["id"],
+        "tipo_relatorio": _texto(tipo_relatorio) or "experimental",
+        "resumo": _texto(resumo) or None,
+        "parecer_pedagogico": _texto(parecer_pedagogico) or None,
+        "audiodescricao": _texto(audiodescricao) or None,
+        "descricao_grafico": _texto(descricao_grafico) or None,
+        "versao": max(int(versao or 1), 1),
+    }
+    resposta = client.table("relatorios").upsert(
+        payload,
+        on_conflict="experimento_id,tipo_relatorio,versao",
+    ).execute()
+    return _primeiro(resposta.data) or payload
+
+
 def limpar_medicoes(grupo_id: str, chave_experimento: str) -> None:
     client = get_supabase_client()
     if chave_experimento not in TIPOS_EXPERIMENTO:
@@ -252,3 +281,4 @@ def limpar_medicoes(grupo_id: str, chave_experimento: str) -> None:
         return
     client.table("medicoes").delete().eq("experimento_id", experimento["id"]).execute()
     client.table("resultados_experimentais").delete().eq("experimento_id", experimento["id"]).execute()
+    client.table("relatorios").delete().eq("experimento_id", experimento["id"]).execute()
