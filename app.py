@@ -9,6 +9,16 @@ import tempfile
 from fpdf import FPDF
 import matplotlib.pyplot as plt
 
+from db import (
+    cadastrar_contexto_escolar,
+    limpar_medicoes,
+    listar_medicoes,
+    obter_contexto_grupo,
+    registrar_medicao,
+    salvar_resultado,
+    verificar_conexao_supabase,
+)
+
 
 app = Flask(__name__)
 
@@ -18,6 +28,10 @@ dados_plano = []
 
 CAMINHO_GRUPO = "grupo_Leandro.json"
 GRAVIDADE_REFERENCIA = 9.80665
+
+
+def parse_numero(valor):
+    return float(str(valor).strip().replace(",", "."))
 
 
 def classificar_qualidade(erro_percentual):
@@ -97,10 +111,46 @@ def calcular_estatisticas(dados):
     }
 
 
-def obter_configuracao_experimento(experimento):
+def converter_medicoes_banco(chave_experimento, linhas):
+    dados = []
+    for linha in linhas:
+        if chave_experimento == "queda":
+            dados.append({
+                "altura": float(linha["altura_m"]),
+                "tempo": float(linha["tempo_s"]),
+                "gravidade": float(linha["gravidade_m_s2"]),
+            })
+        elif chave_experimento == "pendulo":
+            dados.append({
+                "comprimento": float(linha["comprimento_m"]),
+                "periodo": float(linha["periodo_s"]),
+                "gravidade": float(linha["gravidade_m_s2"]),
+            })
+        elif chave_experimento == "plano":
+            dados.append({
+                "angulo": float(linha["angulo_graus"]),
+                "distancia": float(linha["distancia_m"]),
+                "tempo": float(linha["tempo_s"]),
+                "aceleracao": float(linha["aceleracao_m_s2"]),
+                "gravidade": float(linha["gravidade_m_s2"]),
+            })
+    return dados
+
+
+def dados_persistidos(grupo_id, chave_experimento):
+    if not grupo_id:
+        return None
+    try:
+        return converter_medicoes_banco(chave_experimento, listar_medicoes(grupo_id, chave_experimento))
+    except Exception:
+        return None
+
+
+def obter_configuracao_experimento(experimento, grupo_id=None):
+    persistidos = dados_persistidos(grupo_id, experimento)
     configuracoes = {
         "queda": {
-            "dados": dados_queda,
+            "dados": persistidos if persistidos is not None else dados_queda,
             "titulo": "Queda Livre",
             "teoria": (
                 "A queda livre é um movimento uniformemente acelerado sob ação da gravidade. "
@@ -109,7 +159,7 @@ def obter_configuracao_experimento(experimento):
             ),
         },
         "pendulo": {
-            "dados": dados_pendulo,
+            "dados": persistidos if persistidos is not None else dados_pendulo,
             "titulo": "Pêndulo Simples",
             "teoria": (
                 "Para pequenas oscilações, o período de um pêndulo simples depende do "
@@ -118,7 +168,7 @@ def obter_configuracao_experimento(experimento):
             ),
         },
         "plano": {
-            "dados": dados_plano,
+            "dados": persistidos if persistidos is not None else dados_plano,
             "titulo": "Plano Inclinado",
             "teoria": (
                 "Em um plano inclinado ideal, a componente da aceleração paralela ao plano "
@@ -259,11 +309,7 @@ def gerar_relatorio_acessivel(experimento, configuracao):
         "parecer_pedagogico": parecer,
     }
 
-    texto_completo = " ".join(
-        [abertura]
-        + medicoes
-        + [resultado, grafico, interpretacao, parecer]
-    )
+    texto_completo = " ".join([abertura] + medicoes + [resultado, grafico, interpretacao, parecer])
 
     return {
         "experimento": experimento,
@@ -285,39 +331,14 @@ def gerar_grafico_resultados(dados, estatisticas, titulo_experimento):
     arquivo.close()
 
     fig, ax = plt.subplots(figsize=(9, 5.2))
-    ax.plot(
-        medicoes,
-        valores_g,
-        marker="o",
-        linewidth=2,
-        markersize=7,
-        label="g experimental",
-    )
-
-    ax.axhline(
-        GRAVIDADE_REFERENCIA,
-        linestyle="--",
-        linewidth=2,
-        label=f"g de referência = {GRAVIDADE_REFERENCIA:.3f} m/s²",
-    )
+    ax.plot(medicoes, valores_g, marker="o", linewidth=2, markersize=7, label="g experimental")
+    ax.axhline(GRAVIDADE_REFERENCIA, linestyle="--", linewidth=2, label=f"g de referência = {GRAVIDADE_REFERENCIA:.3f} m/s²")
 
     if estatisticas["media"] is not None:
-        ax.axhline(
-            estatisticas["media"],
-            linestyle=":",
-            linewidth=2,
-            label=f"média experimental = {estatisticas['media']:.3f} m/s²",
-        )
+        ax.axhline(estatisticas["media"], linestyle=":", linewidth=2, label=f"média experimental = {estatisticas['media']:.3f} m/s²")
 
     for indice, valor in zip(medicoes, valores_g):
-        ax.annotate(
-            f"{valor:.2f}",
-            (indice, valor),
-            textcoords="offset points",
-            xytext=(0, 8),
-            ha="center",
-            fontsize=8,
-        )
+        ax.annotate(f"{valor:.2f}", (indice, valor), textcoords="offset points", xytext=(0, 8), ha="center", fontsize=8)
 
     ax.set_title(f"Resultado experimental — {titulo_experimento}", fontsize=14, fontweight="bold")
     ax.set_xlabel("Número da medição")
@@ -347,67 +368,145 @@ def escrever_titulo_secao(pdf, titulo):
     pdf.set_text_color(0, 0, 0)
 
 
+def atualizar_resultado_persistido(grupo_id, chave_experimento, dados):
+    if not grupo_id:
+        return
+    estatisticas = calcular_estatisticas(dados)
+    try:
+        salvar_resultado(grupo_id, chave_experimento, estatisticas, interpretar_resultado(estatisticas))
+    except Exception:
+        pass
+
+
 @app.route("/")
 def index():
-    mensagem_voz = (
-        "Bem-vindo ao Laboratório de Física Acessível. Use Tab para navegar. "
-        "Pressione Ctrl+Q, Ctrl+P ou Ctrl+L para áudio dos experimentos."
-    )
+    grupo_id = request.args.get("grupo_id", "").strip()
+    contexto = None
+    mensagem_banco = ""
+
+    if grupo_id:
+        try:
+            contexto = obter_contexto_grupo(grupo_id)
+        except Exception:
+            contexto = None
+            mensagem_banco = "Não foi possível carregar o contexto persistido do banco."
+
+    queda = dados_persistidos(grupo_id, "queda") if grupo_id else None
+    pendulo = dados_persistidos(grupo_id, "pendulo") if grupo_id else None
+    plano = dados_persistidos(grupo_id, "plano") if grupo_id else None
+
+    dados_q = queda if queda is not None else dados_queda
+    dados_p = pendulo if pendulo is not None else dados_pendulo
+    dados_pl = plano if plano is not None else dados_plano
+
     return render_template(
         "index.html",
-        mensagem_voz=mensagem_voz,
-        dados_queda=dados_queda,
-        dados_pendulo=dados_pendulo,
-        dados_plano=dados_plano,
-        estatisticas_queda=calcular_estatisticas(dados_queda),
-        estatisticas_pendulo=calcular_estatisticas(dados_pendulo),
-        estatisticas_plano=calcular_estatisticas(dados_plano),
+        mensagem_voz="Bem-vindo ao Laboratório de Física Acessível.",
+        grupo_id=grupo_id,
+        contexto=contexto,
+        mensagem_banco=mensagem_banco,
+        dados_queda=dados_q,
+        dados_pendulo=dados_p,
+        dados_plano=dados_pl,
+        estatisticas_queda=calcular_estatisticas(dados_q),
+        estatisticas_pendulo=calcular_estatisticas(dados_p),
+        estatisticas_plano=calcular_estatisticas(dados_pl),
     )
+
+
+@app.route("/api/health/supabase")
+def api_health_supabase():
+    resultado = verificar_conexao_supabase()
+    return jsonify(resultado), 200 if resultado.get("ok") else 503
 
 
 @app.route("/salvar-grupo", methods=["POST"])
 def salvar_grupo():
-    grupo = {
-        "nomes": [request.form.get(f"nome{i}", "") for i in range(1, 6)],
-        "turma": request.form.get("turma", ""),
-        "serie": request.form.get("serie", ""),
-    }
+    nomes = [request.form.get(f"nome{i}", "").strip() for i in range(1, 6)]
+    grupo_local = {"nomes": nomes, "turma": request.form.get("turma", ""), "serie": request.form.get("serie", "")}
     with open(CAMINHO_GRUPO, "w", encoding="utf-8") as arquivo:
-        json.dump(grupo, arquivo, ensure_ascii=False, indent=2)
-    return redirect("/")
+        json.dump(grupo_local, arquivo, ensure_ascii=False, indent=2)
+
+    payload = {
+        "nomes": nomes,
+        "escola": request.form.get("escola", ""),
+        "rede": request.form.get("rede", ""),
+        "municipio": request.form.get("municipio", ""),
+        "estado": request.form.get("estado", ""),
+        "ano_letivo": request.form.get("ano_letivo", ""),
+        "serie": request.form.get("serie", ""),
+        "turma": request.form.get("turma", ""),
+        "turno": request.form.get("turno", ""),
+        "componente_curricular": request.form.get("componente_curricular", "Física"),
+        "professor_responsavel": request.form.get("professor_responsavel", ""),
+        "codigo_grupo": request.form.get("codigo_grupo", "Grupo 1"),
+    }
+
+    try:
+        contexto = cadastrar_contexto_escolar(payload)
+        return redirect(f"/?grupo_id={contexto['grupo']['id']}")
+    except Exception as exc:
+        return f"Não foi possível salvar o contexto escolar no banco: {exc}", 500
 
 
 @app.route("/queda-livre", methods=["POST"])
 def queda_livre():
-    altura = float(request.form["altura"])
-    tempo = float(request.form["tempo"])
+    try:
+        altura = parse_numero(request.form["altura"])
+        tempo = parse_numero(request.form["tempo"])
+    except ValueError:
+        return "Informe valores numéricos válidos para altura e tempo.", 400
 
     if altura <= 0 or tempo <= 0:
         return "Altura e tempo devem ser maiores que zero.", 400
 
     g = 2 * altura / (tempo**2)
-    dados_queda.append({"altura": altura, "tempo": tempo, "gravidade": round(g, 4)})
+    item = {"altura": altura, "tempo": tempo, "gravidade": round(g, 4)}
+    grupo_id = request.form.get("grupo_id", "").strip()
+
+    if grupo_id:
+        registrar_medicao(grupo_id, "queda", {"altura_m": altura, "tempo_s": tempo, "gravidade_m_s2": round(g, 4)}, "manual")
+        dados = dados_persistidos(grupo_id, "queda") or [item]
+        atualizar_resultado_persistido(grupo_id, "queda", dados)
+        return redirect(f"/?grupo_id={grupo_id}")
+
+    dados_queda.append(item)
     return redirect("/")
 
 
 @app.route("/pendulo", methods=["POST"])
 def pendulo():
-    comprimento = float(request.form["comprimento"])
-    periodo = float(request.form["periodo"])
+    try:
+        comprimento = parse_numero(request.form["comprimento"])
+        periodo = parse_numero(request.form["periodo"])
+    except ValueError:
+        return "Informe valores numéricos válidos para comprimento e período.", 400
 
     if comprimento <= 0 or periodo <= 0:
         return "Comprimento e período devem ser maiores que zero.", 400
 
     g = (4 * math.pi**2 * comprimento) / (periodo**2)
-    dados_pendulo.append({"comprimento": comprimento, "periodo": periodo, "gravidade": round(g, 4)})
+    item = {"comprimento": comprimento, "periodo": periodo, "gravidade": round(g, 4)}
+    grupo_id = request.form.get("grupo_id", "").strip()
+
+    if grupo_id:
+        registrar_medicao(grupo_id, "pendulo", {"comprimento_m": comprimento, "periodo_s": periodo, "gravidade_m_s2": round(g, 4)}, "manual")
+        dados = dados_persistidos(grupo_id, "pendulo") or [item]
+        atualizar_resultado_persistido(grupo_id, "pendulo", dados)
+        return redirect(f"/?grupo_id={grupo_id}")
+
+    dados_pendulo.append(item)
     return redirect("/")
 
 
 @app.route("/plano", methods=["POST"])
 def plano():
-    angulo = float(request.form["angulo"])
-    distancia = float(request.form["distancia"])
-    tempo = float(request.form["tempo"])
+    try:
+        angulo = parse_numero(request.form["angulo"])
+        distancia = parse_numero(request.form["distancia"])
+        tempo = parse_numero(request.form["tempo"])
+    except ValueError:
+        return "Informe valores numéricos válidos para ângulo, distância e tempo.", 400
 
     if angulo <= 0 or angulo >= 90:
         return "O ângulo deve estar entre 0 e 90 graus.", 400
@@ -416,67 +515,93 @@ def plano():
 
     aceleracao = 2 * distancia / (tempo**2)
     g = aceleracao / math.sin(math.radians(angulo))
-    dados_plano.append(
-        {
-            "angulo": angulo,
-            "distancia": distancia,
-            "tempo": tempo,
-            "aceleracao": round(aceleracao, 4),
-            "gravidade": round(g, 4),
-        }
-    )
+    item = {"angulo": angulo, "distancia": distancia, "tempo": tempo, "aceleracao": round(aceleracao, 4), "gravidade": round(g, 4)}
+    grupo_id = request.form.get("grupo_id", "").strip()
+
+    if grupo_id:
+        registrar_medicao(
+            grupo_id,
+            "plano",
+            {
+                "angulo_graus": angulo,
+                "distancia_m": distancia,
+                "tempo_s": tempo,
+                "aceleracao_m_s2": round(aceleracao, 4),
+                "gravidade_m_s2": round(g, 4),
+            },
+            "manual",
+        )
+        dados = dados_persistidos(grupo_id, "plano") or [item]
+        atualizar_resultado_persistido(grupo_id, "plano", dados)
+        return redirect(f"/?grupo_id={grupo_id}")
+
+    dados_plano.append(item)
     return redirect("/")
 
 
 @app.route("/limpar-<experimento>", methods=["POST"])
 def limpar_experimento(experimento):
+    grupo_id = request.form.get("grupo_id", "").strip()
+    if experimento not in ("queda", "pendulo", "plano"):
+        return jsonify({"erro": "Experimento inválido"}), 404
+
+    if grupo_id:
+        limpar_medicoes(grupo_id, experimento)
+        return redirect(f"/?grupo_id={grupo_id}")
+
     if experimento == "queda":
         dados_queda.clear()
     elif experimento == "pendulo":
         dados_pendulo.clear()
     elif experimento == "plano":
         dados_plano.clear()
-    else:
-        return jsonify({"erro": "Experimento inválido"}), 404
     return redirect("/")
 
 
 @app.route("/api/estatisticas/<experimento>")
 def api_estatisticas(experimento):
-    configuracao = obter_configuracao_experimento(experimento)
+    grupo_id = request.args.get("grupo_id", "").strip()
+    configuracao = obter_configuracao_experimento(experimento, grupo_id)
     if not configuracao:
         return jsonify({"erro": "Experimento inválido"}), 404
 
     estatisticas = calcular_estatisticas(configuracao["dados"])
-    return jsonify(
-        {
-            "experimento": experimento,
-            "estatisticas": estatisticas,
-            "interpretacao": interpretar_resultado(estatisticas),
-        }
-    )
+    return jsonify({"experimento": experimento, "estatisticas": estatisticas, "interpretacao": interpretar_resultado(estatisticas)})
 
 
 @app.route("/api/relatorio-acessivel/<experimento>")
 def api_relatorio_acessivel(experimento):
-    configuracao = obter_configuracao_experimento(experimento)
+    grupo_id = request.args.get("grupo_id", "").strip()
+    configuracao = obter_configuracao_experimento(experimento, grupo_id)
     if not configuracao:
         return jsonify({"erro": "Experimento inválido"}), 404
-
     return jsonify(gerar_relatorio_acessivel(experimento, configuracao))
 
 
 @app.route("/relatorio/<experimento>")
 def gerar_pdf(experimento):
-    configuracao = obter_configuracao_experimento(experimento)
+    grupo_id = request.args.get("grupo_id", "").strip()
+    configuracao = obter_configuracao_experimento(experimento, grupo_id)
     if not configuracao:
         return "Experimento não identificado.", 404
 
-    if not os.path.exists(CAMINHO_GRUPO):
-        return "Grupo não cadastrado", 400
-
-    with open(CAMINHO_GRUPO, encoding="utf-8") as arquivo:
-        grupo = json.load(arquivo)
+    contexto = obter_contexto_grupo(grupo_id) if grupo_id else None
+    if contexto:
+        turma_db = contexto.get("turma") or {}
+        escola_db = contexto.get("escola") or {}
+        grupo_db = contexto.get("grupo") or {}
+        grupo = {
+            "nomes": [p.get("nome_exibicao", "") for p in contexto.get("participantes", [])],
+            "turma": turma_db.get("turma", ""),
+            "serie": turma_db.get("serie_ano", ""),
+            "escola": escola_db.get("nome", ""),
+            "codigo_grupo": grupo_db.get("codigo_grupo", ""),
+        }
+    else:
+        if not os.path.exists(CAMINHO_GRUPO):
+            return "Grupo não cadastrado", 400
+        with open(CAMINHO_GRUPO, encoding="utf-8") as arquivo:
+            grupo = json.load(arquivo)
 
     dados = configuracao["dados"]
     estatisticas = calcular_estatisticas(dados)
@@ -500,7 +625,11 @@ def gerar_pdf(experimento):
     pdf.set_y(39)
 
     pdf.set_font("Arial", "", 10)
+    if grupo.get("escola"):
+        pdf.cell(0, 7, f"Escola: {grupo.get('escola', '')}", ln=True)
     pdf.cell(0, 7, f"Turma: {grupo.get('turma', '')}    Série: {grupo.get('serie', '')}", ln=True)
+    if grupo.get("codigo_grupo"):
+        pdf.cell(0, 7, f"Grupo: {grupo.get('codigo_grupo', '')}", ln=True)
     integrantes = [nome for nome in grupo.get("nomes", []) if nome]
     if integrantes:
         pdf.multi_cell(0, 6, "Integrantes: " + ", ".join(integrantes))
@@ -524,7 +653,6 @@ def gerar_pdf(experimento):
         pdf.set_font("Arial", "", 10)
         pdf.cell(95, 10, f"Referência = {GRAVIDADE_REFERENCIA:.5f} m/s2", border=0, fill=True)
         pdf.cell(95, 10, f"Qualidade = {estatisticas['qualidade']}", border=0, ln=True, fill=True)
-
         pdf.ln(4)
         pdf.set_font("Arial", "", 10)
         pdf.multi_cell(0, 6, interpretacao)
@@ -533,11 +661,7 @@ def gerar_pdf(experimento):
         pdf.ln(4)
         escrever_titulo_secao(pdf, "3. Leitura visual dos resultados")
         pdf.set_font("Arial", "", 9)
-        pdf.multi_cell(
-            0,
-            5,
-            "Cada ponto representa uma medição de g. A linha tracejada indica o valor de referência e a linha pontilhada mostra a média experimental. Quanto mais próximos os pontos estiverem da referência, menor é o erro do experimento.",
-        )
+        pdf.multi_cell(0, 5, "Cada ponto representa uma medição de g. A linha tracejada indica o valor de referência e a linha pontilhada mostra a média experimental. Quanto mais próximos os pontos estiverem da referência, menor é o erro do experimento.")
         pdf.ln(2)
         pdf.image(caminho_grafico, x=15, w=180)
 
@@ -585,12 +709,7 @@ def gerar_pdf(experimento):
         except OSError:
             pass
 
-    return send_file(
-        buffer,
-        as_attachment=True,
-        download_name=f"relatorio_{experimento}.pdf",
-        mimetype="application/pdf",
-    )
+    return send_file(buffer, as_attachment=True, download_name=f"relatorio_{experimento}.pdf", mimetype="application/pdf")
 
 
 if __name__ == "__main__":
