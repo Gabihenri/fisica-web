@@ -1,223 +1,68 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Laboratório de Física Acessível</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    section { margin-top: 30px; padding: 15px; border: 1px solid #ccc; border-radius: 10px; }
-    table { width: 100%; margin-top: 10px; border-collapse: collapse; }
-    th, td { border: 1px solid #aaa; padding: 6px; text-align: center; }
-    input, select, button { padding: 7px; margin: 4px 2px; }
-    .audio-toggle { position: fixed; top: 20px; right: 20px; }
-    .accessibility-panel { background: #f5f8fc; border: 2px solid #1f5f99; }
-    .accessibility-panel select, .accessibility-panel button { min-height: 42px; font-size: 16px; padding: 8px; }
-    .accessibility-panel label { display: block; font-weight: bold; margin-bottom: 8px; }
-    .accessibility-status { margin-top: 12px; font-weight: bold; }
-    .libras-help { margin-top: 10px; padding: 10px; background: #eef6ff; border-left: 4px solid #1f5f99; }
-    .context-status { background: #eef8ef; border: 1px solid #7ca67f; padding: 12px; border-radius: 8px; margin: 12px 0; }
-    .context-grid { display: grid; grid-template-columns: repeat(3, minmax(180px, 1fr)); gap: 8px; }
-    body.high-contrast { background: #000; color: #fff; }
-    body.high-contrast section { background: #000; border-color: #fff; }
-    body.high-contrast input, body.high-contrast select, body.high-contrast button { background: #000; color: #fff; border: 2px solid #fff; }
-    body.high-contrast .libras-help, body.high-contrast .context-status { background: #000; border-color: #fff; }
-    body.large-text { font-size: 125%; }
-    body.large-controls input, body.large-controls button, body.large-controls select, body.large-controls a { min-height: 48px; font-size: 18px; margin: 4px; }
-    body.simplified section p, body.simplified .accessibility-help { max-width: 65ch; line-height: 1.7; }
-    @media (max-width: 700px) {
-      body { margin: 12px; }
-      .audio-toggle { position: static; width: 100%; margin: 10px 0; min-height: 48px; }
-      input, button, select { max-width: 100%; margin: 4px 0; min-height: 42px; }
-      .context-grid { grid-template-columns: 1fr; }
-      table { display: block; overflow-x: auto; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Física Web — Laboratório de Física Acessível</title>
+<style>
+:root{--bg:#f4f7fb;--surface:#fff;--surface2:#eef4fb;--text:#172033;--muted:#5b6577;--primary:#164e86;--primary2:#0b3158;--border:#d6dfeb;--success:#e9f7ee;--radius:18px;--shadow:0 8px 28px rgba(17,38,67,.08)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Arial,sans-serif;line-height:1.5}a{color:var(--primary)}button,input,select{font:inherit}.container{width:min(1180px,calc(100% - 32px));margin:auto}.skip{position:absolute;left:-9999px}.skip:focus{left:16px;top:12px;background:#fff;padding:12px;z-index:1000}.topbar{background:linear-gradient(135deg,var(--primary2),var(--primary));color:#fff;padding:28px 0 22px}.brand-row{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}.eyebrow{font-size:.82rem;text-transform:uppercase;letter-spacing:.12em;opacity:.8;font-weight:700}.topbar h1{font-size:clamp(1.8rem,4vw,3rem);line-height:1.08;margin:7px 0}.topbar p{margin:0;max-width:700px;color:#e5eef8}.quick{display:flex;gap:8px;flex-wrap:wrap}.quick button{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:12px;padding:10px 14px;min-height:44px;cursor:pointer}.nav{background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20}.nav .container{display:flex;gap:8px;overflow:auto;padding:10px 0}.nav a{white-space:nowrap;text-decoration:none;color:var(--text);padding:9px 12px;border-radius:10px;font-weight:650}.nav a:hover,.nav a:focus{background:var(--surface2);outline:2px solid transparent}.layout{display:grid;grid-template-columns:310px 1fr;gap:22px;padding:24px 0 48px}.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px;margin-bottom:20px}.card h2{margin:0 0 8px;font-size:1.35rem}.card h3{margin:18px 0 8px}.muted{color:var(--muted)}.access{position:sticky;top:76px;align-self:start}.access label{display:block;font-weight:650;margin:12px 0 6px}.access select,.access button{width:100%;min-height:46px}.access select,input{border:1px solid #bac7d6;border-radius:10px;padding:10px 12px;background:#fff;color:#172033}.primary{background:var(--primary);color:#fff;border:0;border-radius:10px;padding:11px 15px;font-weight:700;cursor:pointer}.secondary{background:#fff;color:var(--primary2);border:1px solid #aebdcd;border-radius:10px;padding:10px 14px;font-weight:650;cursor:pointer}.danger{background:#fff;color:#8a2632;border:1px solid #dfb5bb;border-radius:10px;padding:10px 14px}.check label{font-weight:400;margin:8px 0}.libras-help{font-size:.9rem;background:var(--surface2);border-radius:12px;padding:12px;margin-top:14px}.status{background:var(--success);border:1px solid #a9d5b6;padding:12px;border-radius:12px;margin:12px 0}.context-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.context-grid input{width:100%;min-height:44px}.participants{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}.participants input{width:100%}.section-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px}.tag{background:var(--surface2);color:var(--primary2);padding:5px 9px;border-radius:999px;font-size:.82rem;font-weight:700}.experiments{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.experiment{border:1px solid var(--border);border-radius:16px;padding:18px;background:#fff}.experiment h3{margin:0 0 4px}.experiment form{display:grid;gap:8px;margin:14px 0}.experiment input{width:100%}.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.report-link{display:inline-flex;align-items:center;min-height:42px;padding:8px 11px;border-radius:10px;background:var(--surface2);text-decoration:none;font-weight:650}.table-wrap{overflow:auto;margin-top:14px;border:1px solid var(--border);border-radius:12px}table{width:100%;border-collapse:collapse;min-width:420px}th,td{padding:10px;border-bottom:1px solid var(--border);text-align:center}th{background:#f7f9fc;font-size:.9rem}tr:last-child td{border-bottom:0}.workflow{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 18px}.workflow span{font-size:.82rem;padding:5px 9px;border-radius:999px;background:#eaf1f8;color:#29425d}.sr-status{font-weight:650;margin-top:10px}.audio-toggle{min-width:150px}
+body.high-contrast{--bg:#000;--surface:#000;--surface2:#111;--text:#fff;--muted:#eee;--primary:#fff;--primary2:#fff;--border:#fff;--success:#000;--shadow:none}body.high-contrast .topbar{background:#000;border-bottom:2px solid #fff}body.high-contrast input,body.high-contrast select,body.high-contrast button,body.high-contrast .experiment{background:#000;color:#fff;border:2px solid #fff}body.high-contrast th{background:#000}body.large-text{font-size:125%}body.large-controls button,body.large-controls input,body.large-controls select,body.large-controls a{min-height:52px;font-size:1rem}body.simplified .muted,body.simplified .libras-help{max-width:62ch;line-height:1.8}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.access{position:static}.experiments{grid-template-columns:1fr}.context-grid{grid-template-columns:repeat(2,1fr)}.participants{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.container{width:min(100% - 20px,1180px)}.topbar{padding:20px 0}.brand-row{display:block}.quick{margin-top:16px}.quick button{flex:1}.layout{padding-top:14px;gap:0}.card{padding:17px;border-radius:15px;margin-bottom:14px;box-shadow:none}.context-grid,.participants{grid-template-columns:1fr}.section-head{display:block}.tag{display:inline-block;margin-top:5px}.actions>*{flex:1 1 auto}.experiment{padding:15px}.nav .container{width:100%;padding-left:10px;padding-right:10px}}
+</style>
 </head>
 <body>
-
-<header>
-  <h1>Física Web — Laboratório de Física Acessível</h1>
-  <p>Experimentação, análise de dados e acessibilidade multimodal.</p>
+<a class="skip" href="#conteudo">Ir para o conteúdo principal</a>
+<header class="topbar">
+ <div class="container brand-row">
+  <div><div class="eyebrow">Laboratório digital inclusivo</div><h1>Física Web</h1><p>Experimentação, aquisição de dados, análise científica e acessibilidade multimodal em uma experiência adaptável.</p></div>
+  <div class="quick" aria-label="Acessibilidade rápida"><button id="toggle-voice" class="audio-toggle">🔊 Desativar áudio</button><button type="button" onclick="document.getElementById('acessibilidade').scrollIntoView()">♿ Acessibilidade</button></div>
+ </div>
 </header>
-
-<button id="toggle-voice" class="audio-toggle">🔊 Desativar Áudio</button>
-
-<section class="accessibility-panel" aria-labelledby="acessibilidade-titulo">
-  <h2 id="acessibilidade-titulo">Perfil de Acessibilidade</h2>
-  <p class="accessibility-help">A escolha é voluntária. O Física Web usa esta opção apenas para ativar recursos de acessibilidade no seu navegador. Você também pode escolher “Personalizado” ou “Prefiro não informar”.</p>
-  <label for="perfil-acessibilidade">Qual experiência de acesso você prefere?</label>
-  <select id="perfil-acessibilidade">
-    <option value="padrao">Padrão / Prefiro não informar</option>
-    <option value="visual">Deficiência visual</option>
-    <option value="auditiva">Deficiência auditiva</option>
-    <option value="motora">Deficiência motora</option>
-    <option value="cognitiva">Deficiência intelectual ou cognitiva</option>
-    <option value="multipla">Múltiplas necessidades</option>
-    <option value="personalizado">Personalizado</option>
-  </select>
-  <button type="button" id="aplicar-perfil">Aplicar perfil</button>
-  <div id="recursos-personalizados" hidden>
-    <p><strong>Escolha os recursos:</strong></p>
-    <label><input type="checkbox" id="recurso-audio"> Leitura e audiodescrição</label>
-    <label><input type="checkbox" id="recurso-contraste"> Alto contraste</label>
-    <label><input type="checkbox" id="recurso-texto"> Texto ampliado</label>
-    <label><input type="checkbox" id="recurso-controles"> Controles ampliados</label>
-    <label><input type="checkbox" id="recurso-simplificado"> Leitura simplificada e guiada</label>
-    <label><input type="checkbox" id="recurso-libras"> Libras com VLibras</label>
-  </div>
-  <p id="status-acessibilidade" class="accessibility-status" role="status" aria-live="polite"></p>
-  <p class="libras-help">Para tradução em Libras, use o botão flutuante do VLibras que aparece na página. O recurso oferece tradução automática do conteúdo em português e não substitui um intérprete humano em situações pedagógicas que exijam mediação especializada.</p>
+<nav class="nav" aria-label="Navegação principal"><div class="container"><a href="#contexto">1. Contexto</a><a href="#experimentos">2. Experimentar</a><a href="#experimentos">3. Analisar</a><a href="#experimentos">4. Relatórios</a></div></nav>
+<div class="container layout">
+<aside id="acessibilidade" class="card access" aria-labelledby="acessibilidade-titulo">
+ <div class="section-head"><div><div class="eyebrow" style="color:var(--primary)">Preferências</div><h2 id="acessibilidade-titulo">Acessibilidade</h2></div><span class="tag">Adaptável</span></div>
+ <p class="muted">Escolha a experiência que facilita seu uso. A configuração fica somente neste dispositivo.</p>
+ <label for="perfil-acessibilidade">Perfil de acesso</label>
+ <select id="perfil-acessibilidade"><option value="padrao">Padrão / Prefiro não informar</option><option value="visual">Recursos visuais ampliados</option><option value="auditiva">Recursos para conteúdo sonoro</option><option value="motora">Controles e navegação ampliados</option><option value="cognitiva">Leitura guiada e simplificada</option><option value="multipla">Combinar recursos</option><option value="personalizado">Personalizado</option></select>
+ <button type="button" class="primary" id="aplicar-perfil">Aplicar preferências</button>
+ <div id="recursos-personalizados" class="check" hidden><h3>Personalizar</h3><label><input type="checkbox" id="recurso-audio"> Leitura e audiodescrição</label><label><input type="checkbox" id="recurso-contraste"> Alto contraste</label><label><input type="checkbox" id="recurso-texto"> Texto ampliado</label><label><input type="checkbox" id="recurso-controles"> Controles ampliados</label><label><input type="checkbox" id="recurso-simplificado"> Leitura simplificada</label><label><input type="checkbox" id="recurso-libras"> Libras com VLibras</label></div>
+ <p id="status-acessibilidade" class="sr-status" role="status" aria-live="polite"></p>
+ <div class="libras-help"><strong>Libras:</strong> use o botão flutuante do VLibras. A tradução automática é um apoio e não substitui mediação humana quando necessária.</div>
+</aside>
+<main id="conteudo">
+<section id="contexto" class="card">
+ <div class="section-head"><div><div class="eyebrow" style="color:var(--primary)">Etapa 1</div><h2>Contexto da sessão experimental</h2><p class="muted">Identifique escola, turma e grupo uma única vez. Os experimentos desta sessão usarão esse contexto.</p></div><span class="tag">Supabase</span></div>
+ {% if contexto %}<div class="status" role="status"><strong>✓ Grupo ativo</strong><br>Escola: {{ contexto.escola.nome if contexto.escola else '' }} · Série: {{ contexto.turma.serie_ano if contexto.turma else '' }} · Turma: {{ contexto.turma.turma if contexto.turma else '' }} · Grupo: {{ contexto.grupo.codigo_grupo if contexto.grupo else '' }}</div>{% endif %}
+ {% if mensagem_banco %}<p role="alert">{{ mensagem_banco }}</p>{% endif %}
+ <form method="POST" action="/salvar-grupo">
+  <div class="context-grid"><input name="escola" aria-label="Nome da escola" placeholder="Nome da escola" required><input name="rede" aria-label="Rede de ensino" placeholder="Rede de ensino"><input name="municipio" aria-label="Município" placeholder="Município"><input name="estado" aria-label="Estado" placeholder="UF" maxlength="2"><input name="ano_letivo" aria-label="Ano letivo" placeholder="Ano letivo" inputmode="numeric" required><input name="serie" aria-label="Série ou ano" placeholder="Série / Ano" required><input name="turma" aria-label="Turma" placeholder="Turma" required><input name="turno" aria-label="Turno" placeholder="Turno"><input name="componente_curricular" value="Física" aria-label="Componente curricular" placeholder="Componente curricular"><input name="professor_responsavel" aria-label="Professor responsável" placeholder="Professor responsável"><input name="codigo_grupo" value="Grupo 1" aria-label="Código do grupo" placeholder="Código do grupo"></div>
+  <h3>Participantes</h3><div class="participants">{% for i in range(1,6) %}<input name="nome{{ i }}" aria-label="Participante {{ i }}" placeholder="Participante {{ i }}">{% endfor %}</div>
+  <p><button class="primary" type="submit" onfocus="falar('Salvar contexto escolar e grupo')">Salvar contexto e iniciar sessão</button></p>
+ </form>
 </section>
-
-<section>
-  <h2>Contexto Escolar e Grupo Experimental</h2>
-  {% if contexto %}
-    <div class="context-status" role="status">
-      <strong>Grupo ativo salvo no Supabase.</strong><br>
-      Escola: {{ contexto.escola.nome if contexto.escola else '' }} ·
-      Série: {{ contexto.turma.serie_ano if contexto.turma else '' }} ·
-      Turma: {{ contexto.turma.turma if contexto.turma else '' }} ·
-      Grupo: {{ contexto.grupo.codigo_grupo if contexto.grupo else '' }}
-    </div>
-  {% endif %}
-  {% if mensagem_banco %}<p role="alert">{{ mensagem_banco }}</p>{% endif %}
-  <form method="POST" action="/salvar-grupo">
-    <div class="context-grid">
-      <input name="escola" placeholder="Nome da escola" required>
-      <input name="rede" placeholder="Rede (ex.: Estadual, Municipal, Privada)">
-      <input name="municipio" placeholder="Município">
-      <input name="estado" placeholder="UF (ex.: SP)" maxlength="2">
-      <input name="ano_letivo" placeholder="Ano letivo" inputmode="numeric" required>
-      <input name="serie" placeholder="Série / Ano" required>
-      <input name="turma" placeholder="Turma" required>
-      <input name="turno" placeholder="Turno">
-      <input name="componente_curricular" value="Física" placeholder="Componente curricular">
-      <input name="professor_responsavel" placeholder="Professor responsável">
-      <input name="codigo_grupo" value="Grupo 1" placeholder="Código do grupo">
-    </div>
-    <p><strong>Participantes</strong></p>
-    {% for i in range(1, 6) %}<input name="nome{{ i }}" placeholder="Participante {{ i }}">{% endfor %}<br>
-    <button type="submit" onfocus="falar('Salvar contexto escolar e grupo')">Salvar Contexto e Grupo</button>
-  </form>
+<section id="experimentos" class="card">
+ <div class="section-head"><div><div class="eyebrow" style="color:var(--primary)">Etapas 2–4</div><h2>Ambiente de Mecânica</h2><p class="muted">Escolha um experimento, registre medições e acesse resultados e relatórios no mesmo ambiente.</p></div><span class="tag">Mecânica</span></div>
+ <div class="workflow" aria-label="Fluxo experimental"><span>Preparar</span><span>→ Medir</span><span>→ Analisar</span><span>→ Relatar</span></div>
+ <div class="experiments">
+  <article class="experiment"><h3>Queda Livre</h3><p class="muted">Determine experimentalmente a aceleração da gravidade a partir da altura e do tempo.</p><form method="POST" action="/queda-livre"><input type="hidden" name="grupo_id" value="{{ grupo_id }}"><input name="altura" aria-label="Altura em metros" placeholder="Altura (m)" inputmode="decimal" required><input name="tempo" aria-label="Tempo em segundos" placeholder="Tempo (s)" inputmode="decimal" required><button class="primary" type="submit">Registrar medição</button></form><div class="actions"><form method="POST" action="/limpar-queda"><input type="hidden" name="grupo_id" value="{{ grupo_id }}"><button class="danger" type="submit">Limpar</button></form><a class="report-link" href="/relatorio/queda{% if grupo_id %}?grupo_id={{ grupo_id }}{% endif %}">📄 PDF</a></div><div class="table-wrap"><table><caption class="skip">Medições de queda livre</caption><tr><th>Altura (m)</th><th>Tempo (s)</th><th>g (m/s²)</th></tr>{% for d in dados_queda %}<tr><td>{{ d.altura }}</td><td>{{ d.tempo }}</td><td>{{ d.gravidade }}</td></tr>{% endfor %}</table></div></article>
+  <article class="experiment"><h3>Pêndulo Simples</h3><p class="muted">Estime a gravidade relacionando comprimento do pêndulo e período de oscilação.</p><form method="POST" action="/pendulo"><input type="hidden" name="grupo_id" value="{{ grupo_id }}"><input name="comprimento" aria-label="Comprimento em metros" placeholder="Comprimento (m)" inputmode="decimal" required><input name="periodo" aria-label="Período em segundos" placeholder="Período (s)" inputmode="decimal" required><button class="primary" type="submit">Registrar medição</button></form><div class="actions"><form method="POST" action="/limpar-pendulo"><input type="hidden" name="grupo_id" value="{{ grupo_id }}"><button class="danger" type="submit">Limpar</button></form><a class="report-link" href="/relatorio/pendulo{% if grupo_id %}?grupo_id={{ grupo_id }}{% endif %}">📄 PDF</a></div><div class="table-wrap"><table><caption class="skip">Medições do pêndulo simples</caption><tr><th>Comprimento (m)</th><th>Período (s)</th><th>g (m/s²)</th></tr>{% for d in dados_pendulo %}<tr><td>{{ d.comprimento }}</td><td>{{ d.periodo }}</td><td>{{ d.gravidade }}</td></tr>{% endfor %}</table></div></article>
+  <article class="experiment"><h3>Plano Inclinado</h3><p class="muted">Estime a gravidade a partir do movimento em um plano com inclinação conhecida.</p><form method="POST" action="/plano"><input type="hidden" name="grupo_id" value="{{ grupo_id }}"><input name="angulo" aria-label="Ângulo em graus" placeholder="Ângulo (°)" inputmode="decimal" required><input name="distancia" aria-label="Distância em metros" placeholder="Distância (m)" inputmode="decimal" required><input name="tempo" aria-label="Tempo em segundos" placeholder="Tempo (s)" inputmode="decimal" required><button class="primary" type="submit">Registrar medição</button></form><div class="actions"><form method="POST" action="/limpar-plano"><input type="hidden" name="grupo_id" value="{{ grupo_id }}"><button class="danger" type="submit">Limpar</button></form><a class="report-link" href="/relatorio/plano{% if grupo_id %}?grupo_id={{ grupo_id }}{% endif %}">📄 PDF</a></div><div class="table-wrap"><table><caption class="skip">Medições do plano inclinado</caption><tr><th>Ângulo (°)</th><th>Distância (m)</th><th>Tempo (s)</th><th>g (m/s²)</th></tr>{% for d in dados_plano %}<tr><td>{{ d.angulo }}</td><td>{{ d.distancia }}</td><td>{{ d.tempo }}</td><td>{{ d.gravidade }}</td></tr>{% endfor %}</table></div></article>
+ </div>
 </section>
-
-<section>
-  <h2>Experimento: Queda Livre</h2>
-  <form method="POST" action="/queda-livre">
-    <input type="hidden" name="grupo_id" value="{{ grupo_id }}">
-    <input name="altura" placeholder="Altura (m)" inputmode="decimal" required><input name="tempo" placeholder="Tempo (s)" inputmode="decimal" required>
-    <button type="submit" onfocus="falar('Registrar queda livre')">Registrar</button>
-  </form>
-  <form method="POST" action="/limpar-queda"><input type="hidden" name="grupo_id" value="{{ grupo_id }}"><button type="submit" onfocus="falar('Limpar dados da queda livre')">Limpar Dados</button></form>
-  <table><tr><th>Altura (m)</th><th>Tempo (s)</th><th>Gravidade (m/s²)</th></tr>{% for d in dados_queda %}<tr><td>{{ d.altura }}</td><td>{{ d.tempo }}</td><td>{{ d.gravidade }}</td></tr>{% endfor %}</table>
-  <a href="/relatorio/queda{% if grupo_id %}?grupo_id={{ grupo_id }}{% endif %}" onfocus="falar('Gerar relatório da queda livre')">📄 Gerar Relatório PDF</a>
-</section>
-
-<section>
-  <h2>Experimento: Pêndulo Simples</h2>
-  <form method="POST" action="/pendulo">
-    <input type="hidden" name="grupo_id" value="{{ grupo_id }}">
-    <input name="comprimento" placeholder="Comprimento (m)" inputmode="decimal" required><input name="periodo" placeholder="Período (s)" inputmode="decimal" required>
-    <button type="submit" onfocus="falar('Registrar pêndulo simples')">Registrar</button>
-  </form>
-  <form method="POST" action="/limpar-pendulo"><input type="hidden" name="grupo_id" value="{{ grupo_id }}"><button type="submit" onfocus="falar('Limpar dados do pêndulo')">Limpar Dados</button></form>
-  <table><tr><th>Comprimento (m)</th><th>Período (s)</th><th>Gravidade (m/s²)</th></tr>{% for d in dados_pendulo %}<tr><td>{{ d.comprimento }}</td><td>{{ d.periodo }}</td><td>{{ d.gravidade }}</td></tr>{% endfor %}</table>
-  <a href="/relatorio/pendulo{% if grupo_id %}?grupo_id={{ grupo_id }}{% endif %}" onfocus="falar('Gerar relatório do pêndulo')">📄 Gerar Relatório PDF</a>
-</section>
-
-<section>
-  <h2>Experimento: Plano Inclinado</h2>
-  <form method="POST" action="/plano">
-    <input type="hidden" name="grupo_id" value="{{ grupo_id }}">
-    <input name="angulo" placeholder="Ângulo (°)" inputmode="decimal" required><input name="distancia" placeholder="Distância (m)" inputmode="decimal" required><input name="tempo" placeholder="Tempo (s)" inputmode="decimal" required>
-    <button type="submit" onfocus="falar('Registrar plano inclinado')">Registrar</button>
-  </form>
-  <form method="POST" action="/limpar-plano"><input type="hidden" name="grupo_id" value="{{ grupo_id }}"><button type="submit" onfocus="falar('Limpar dados do plano inclinado')">Limpar Dados</button></form>
-  <table><tr><th>Ângulo (°)</th><th>Distância (m)</th><th>Tempo (s)</th><th>Gravidade (m/s²)</th></tr>{% for d in dados_plano %}<tr><td>{{ d.angulo }}</td><td>{{ d.distancia }}</td><td>{{ d.tempo }}</td><td>{{ d.gravidade }}</td></tr>{% endfor %}</table>
-  <a href="/relatorio/plano{% if grupo_id %}?grupo_id={{ grupo_id }}{% endif %}" onfocus="falar('Gerar relatório do plano inclinado')">📄 Gerar Relatório PDF</a>
-</section>
-
-<div vw class="enabled">
-  <div vw-access-button class="active"></div>
-  <div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div>
-</div>
-
+</main></div>
+<div vw class="enabled"><div vw-access-button class="active"></div><div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div></div>
 <script>
-  let vozAtiva = true;
-  function falar(texto) {
-    if (!vozAtiva || !('speechSynthesis' in window)) return;
-    const synth = window.speechSynthesis;
-    const utter = new SpeechSynthesisUtterance(texto);
-    utter.lang = 'pt-BR';
-    synth.cancel(); synth.speak(utter);
-  }
-
-  const perfil = document.getElementById('perfil-acessibilidade');
-  const personalizados = document.getElementById('recursos-personalizados');
-  const status = document.getElementById('status-acessibilidade');
-
-  function limparClasses() {
-    document.body.classList.remove('high-contrast', 'large-text', 'large-controls', 'simplified');
-  }
-
-  function aplicarRecursos(config) {
-    limparClasses();
-    vozAtiva = !!config.audio;
-    if (config.contraste) document.body.classList.add('high-contrast');
-    if (config.texto) document.body.classList.add('large-text');
-    if (config.controles) document.body.classList.add('large-controls');
-    if (config.simplificado) document.body.classList.add('simplified');
-    document.getElementById('toggle-voice').textContent = vozAtiva ? '🔊 Desativar Áudio' : '🔇 Ativar Áudio';
-    if (config.libras) status.textContent = 'Perfil aplicado. Libras está disponível pelo botão flutuante do VLibras.';
-    else status.textContent = 'Perfil de acessibilidade aplicado neste dispositivo.';
-  }
-
-  function configuracaoDoPerfil(valor) {
-    if (valor === 'visual') return {audio:true, contraste:true, texto:true, controles:true};
-    if (valor === 'auditiva') return {audio:false, texto:false, controles:false, libras:true};
-    if (valor === 'motora') return {audio:true, controles:true, texto:false};
-    if (valor === 'cognitiva') return {audio:true, texto:true, controles:true, simplificado:true};
-    if (valor === 'multipla') return {audio:true, contraste:true, texto:true, controles:true, simplificado:true, libras:true};
-    if (valor === 'personalizado') return {
-      audio: document.getElementById('recurso-audio').checked,
-      contraste: document.getElementById('recurso-contraste').checked,
-      texto: document.getElementById('recurso-texto').checked,
-      controles: document.getElementById('recurso-controles').checked,
-      simplificado: document.getElementById('recurso-simplificado').checked,
-      libras: document.getElementById('recurso-libras').checked
-    };
-    return {audio:true};
-  }
-
-  perfil.addEventListener('change', () => { personalizados.hidden = perfil.value !== 'personalizado'; });
-  document.getElementById('aplicar-perfil').addEventListener('click', () => {
-    const config = configuracaoDoPerfil(perfil.value);
-    localStorage.setItem('fisicaWebPerfil', perfil.value);
-    localStorage.setItem('fisicaWebRecursos', JSON.stringify(config));
-    aplicarRecursos(config);
-    falar('Perfil de acessibilidade aplicado.');
-  });
-
-  window.onload = () => {
-    const salvo = localStorage.getItem('fisicaWebPerfil');
-    const recursosSalvos = localStorage.getItem('fisicaWebRecursos');
-    if (salvo) perfil.value = salvo;
-    personalizados.hidden = perfil.value !== 'personalizado';
-    if (recursosSalvos) {
-      try { aplicarRecursos(JSON.parse(recursosSalvos)); } catch (e) { aplicarRecursos({audio:true}); }
-    }
-    falar('Bem-vindo ao Física Web. Cadastre o contexto escolar e o grupo antes de iniciar as medições.');
-  };
-
-  document.getElementById('toggle-voice').onclick = () => {
-    vozAtiva = !vozAtiva;
-    document.getElementById('toggle-voice').textContent = vozAtiva ? '🔊 Desativar Áudio' : '🔇 Ativar Áudio';
-    if (vozAtiva) falar('Áudio ativado.');
-  };
+let vozAtiva=true;function falar(texto){if(!vozAtiva||!('speechSynthesis'in window))return;const s=window.speechSynthesis,u=new SpeechSynthesisUtterance(texto);u.lang='pt-BR';s.cancel();s.speak(u)}
+const perfil=document.getElementById('perfil-acessibilidade'),personalizados=document.getElementById('recursos-personalizados'),status=document.getElementById('status-acessibilidade');
+function limparClasses(){document.body.classList.remove('high-contrast','large-text','large-controls','simplified')}
+function aplicarRecursos(c){limparClasses();vozAtiva=!!c.audio;if(c.contraste)document.body.classList.add('high-contrast');if(c.texto)document.body.classList.add('large-text');if(c.controles)document.body.classList.add('large-controls');if(c.simplificado)document.body.classList.add('simplified');document.getElementById('toggle-voice').textContent=vozAtiva?'🔊 Desativar áudio':'🔇 Ativar áudio';status.textContent=c.libras?'Preferências aplicadas. Libras disponível pelo botão flutuante.':'Preferências de acessibilidade aplicadas neste dispositivo.'}
+function configuracaoDoPerfil(v){if(v==='visual')return{audio:true,contraste:true,texto:true,controles:true};if(v==='auditiva')return{audio:false,libras:true};if(v==='motora')return{audio:true,controles:true};if(v==='cognitiva')return{audio:true,texto:true,controles:true,simplificado:true};if(v==='multipla')return{audio:true,contraste:true,texto:true,controles:true,simplificado:true,libras:true};if(v==='personalizado')return{audio:document.getElementById('recurso-audio').checked,contraste:document.getElementById('recurso-contraste').checked,texto:document.getElementById('recurso-texto').checked,controles:document.getElementById('recurso-controles').checked,simplificado:document.getElementById('recurso-simplificado').checked,libras:document.getElementById('recurso-libras').checked};return{audio:true}}
+perfil.addEventListener('change',()=>{personalizados.hidden=perfil.value!=='personalizado'});document.getElementById('aplicar-perfil').addEventListener('click',()=>{const c=configuracaoDoPerfil(perfil.value);localStorage.setItem('fisicaWebPerfil',perfil.value);localStorage.setItem('fisicaWebRecursos',JSON.stringify(c));aplicarRecursos(c);falar('Preferências de acessibilidade aplicadas.')});
+window.addEventListener('load',()=>{const p=localStorage.getItem('fisicaWebPerfil'),r=localStorage.getItem('fisicaWebRecursos');if(p)perfil.value=p;personalizados.hidden=perfil.value!=='personalizado';if(r){try{aplicarRecursos(JSON.parse(r))}catch(e){aplicarRecursos({audio:true})}}});
+document.getElementById('toggle-voice').onclick=()=>{vozAtiva=!vozAtiva;document.getElementById('toggle-voice').textContent=vozAtiva?'🔊 Desativar áudio':'🔇 Ativar áudio';if(vozAtiva)falar('Áudio ativado.')};
 </script>
-<script src="{{ url_for('static', filename='accessibility-report.js') }}"></script>
-<script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
-<script>new window.VLibras.Widget('https://vlibras.gov.br/app');</script>
-</body>
-</html>
+<script src="{{ url_for('static', filename='accessibility-report.js') }}"></script><script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script><script>new window.VLibras.Widget('https://vlibras.gov.br/app');</script>
+</body></html>
