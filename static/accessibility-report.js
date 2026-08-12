@@ -15,6 +15,7 @@
     const botao = document.createElement('button');
     botao.type = 'button';
     botao.textContent = rotulo;
+    botao.className = 'secondary';
     botao.setAttribute('aria-label', ariaLabel || rotulo);
     botao.addEventListener('click', acao);
     return botao;
@@ -32,7 +33,6 @@
       if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
       const relatorio = await resposta.json();
       const texto = relatorio.texto_completo || 'Não há conteúdo disponível para leitura.';
-
       synth.cancel();
       utteranceAtual = new SpeechSynthesisUtterance(texto);
       utteranceAtual.lang = 'pt-BR';
@@ -47,20 +47,22 @@
     }
   }
 
-  function montarControles(secao, chave, titulo) {
-    if (secao.querySelector('.accessible-report-controls')) return;
+  function montarControles(container, chave, titulo) {
+    if (container.querySelector('.accessible-report-controls')) return;
 
     const bloco = document.createElement('div');
     bloco.className = 'accessible-report-controls';
     bloco.style.marginTop = '12px';
-    bloco.style.padding = '10px';
-    bloco.style.border = '1px solid currentColor';
-    bloco.style.borderRadius = '8px';
+    bloco.style.paddingTop = '12px';
+    bloco.style.borderTop = '1px solid var(--border, currentColor)';
 
     const rotulo = document.createElement('strong');
     rotulo.textContent = 'Relatório acessível em áudio';
     bloco.appendChild(rotulo);
-    bloco.appendChild(document.createElement('br'));
+
+    const botoes = document.createElement('div');
+    botoes.className = 'actions';
+    botoes.style.marginTop = '8px';
 
     const status = document.createElement('span');
     status.setAttribute('role', 'status');
@@ -68,46 +70,38 @@
     status.style.display = 'block';
     status.style.marginTop = '8px';
 
-    bloco.appendChild(criarBotao('▶ Ouvir', () => ouvirRelatorio(chave, status), `Ouvir relatório acessível de ${titulo}`));
-    bloco.appendChild(criarBotao('⏸ Pausar', () => {
+    botoes.appendChild(criarBotao('▶ Ouvir', () => ouvirRelatorio(chave, status), `Ouvir relatório acessível de ${titulo}`));
+    botoes.appendChild(criarBotao('⏸ Pausar', () => {
       if (synth.speaking && !synth.paused) {
         synth.pause();
         status.textContent = 'Leitura pausada.';
       }
     }, `Pausar relatório de ${titulo}`));
-    bloco.appendChild(criarBotao('⏯ Continuar', () => {
+    botoes.appendChild(criarBotao('⏯ Continuar', () => {
       if (synth.paused) {
         synth.resume();
         status.textContent = 'Leitura retomada.';
       }
     }, `Continuar relatório de ${titulo}`));
-    bloco.appendChild(criarBotao('⏹ Parar', () => {
+    botoes.appendChild(criarBotao('⏹ Parar', () => {
       synth.cancel();
       utteranceAtual = null;
       status.textContent = 'Leitura encerrada.';
     }, `Parar relatório de ${titulo}`));
 
+    bloco.appendChild(botoes);
     bloco.appendChild(status);
-    secao.appendChild(bloco);
+    container.appendChild(bloco);
   }
 
   function inicializar() {
-    const experimentos = [
-      { chave: 'queda', titulo: 'Queda Livre' },
-      { chave: 'pendulo', titulo: 'Pêndulo Simples' },
-      { chave: 'plano', titulo: 'Plano Inclinado' },
-    ];
-
-    document.querySelectorAll('section').forEach((secao) => {
-      const titulo = secao.querySelector('h2')?.textContent || '';
-      const experimento = experimentos.find((item) => titulo.includes(item.titulo));
-      if (experimento) montarControles(secao, experimento.chave, experimento.titulo);
+    document.querySelectorAll('[data-experiment]').forEach((container) => {
+      const chave = container.dataset.experiment;
+      const titulo = container.dataset.title || container.querySelector('h3')?.textContent || 'experimento';
+      if (chave) montarControles(container, chave, titulo);
     });
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', inicializar);
-  } else {
-    inicializar();
-  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', inicializar);
+  else inicializar();
 })();
