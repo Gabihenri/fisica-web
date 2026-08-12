@@ -84,10 +84,14 @@
   }
 
   async function executarPostSemRecarregar(form, artigo, opcoes = {}) {
+    if (form.dataset.enviando === '1') return;
+    form.dataset.enviando = '1';
+
     const botao = form.querySelector('button[type="submit"]');
     const textoOriginal = botao?.textContent;
     if (botao) {
       botao.disabled = true;
+      botao.setAttribute('aria-disabled', 'true');
       botao.textContent = opcoes.processando || 'Processando…';
     }
     mensagem(artigo, opcoes.status || 'Salvando…');
@@ -118,11 +122,27 @@
       mensagem(artigo, opcoes.erro || 'Não foi possível concluir a operação.', 'erro');
       console.error('Física Web — operação assíncrona:', erro);
     } finally {
-      if (botao) {
-        botao.disabled = false;
-        botao.textContent = textoOriginal;
-      }
+      window.setTimeout(() => {
+        form.dataset.enviando = '0';
+        if (botao) {
+          botao.disabled = false;
+          botao.removeAttribute('aria-disabled');
+          botao.textContent = textoOriginal;
+        }
+      }, 500);
     }
+  }
+
+  function protegerFormulario(form, artigo, opcoes) {
+    if (!form || form.dataset.asyncProtegido === '1') return;
+    form.dataset.asyncProtegido = '1';
+    form.addEventListener('submit', (evento) => {
+      evento.preventDefault();
+      evento.stopImmediatePropagation();
+      if (form.dataset.enviando === '1') return false;
+      executarPostSemRecarregar(form, artigo, opcoes);
+      return false;
+    }, true);
   }
 
   function modoFocado(chave) {
@@ -145,35 +165,21 @@
     ativo.classList.add('experiment-active');
     adicionarCabecalhoFoco(ativo);
 
-    const formulario = ativo.querySelector('form.measure');
-    if (formulario) {
-      formulario.addEventListener('submit', (evento) => {
-        evento.preventDefault();
-        evento.stopPropagation();
-        executarPostSemRecarregar(formulario, ativo, {
-          processando: 'Registrando…',
-          status: 'Salvando medição…',
-          sucesso: 'Medição registrada e salva. A tabela foi atualizada.',
-          erro: 'Não foi possível registrar a medição. Verifique os valores e tente novamente.',
-          resetar: true,
-        });
-      }, true);
-    }
+    protegerFormulario(ativo.querySelector('form.measure'), ativo, {
+      processando: 'Registrando…',
+      status: 'Salvando medição…',
+      sucesso: 'Medição registrada e salva. A tabela foi atualizada.',
+      erro: 'Não foi possível registrar a medição. Verifique os valores e tente novamente.',
+      resetar: true,
+    });
 
-    const limpar = ativo.querySelector('form[action*="limpar"]');
-    if (limpar) {
-      limpar.addEventListener('submit', (evento) => {
-        evento.preventDefault();
-        evento.stopPropagation();
-        executarPostSemRecarregar(limpar, ativo, {
-          processando: 'Limpando…',
-          status: 'Limpando medições…',
-          sucesso: 'Medições removidas.',
-          erro: 'Não foi possível limpar as medições.',
-          resetar: false,
-        });
-      }, true);
-    }
+    protegerFormulario(ativo.querySelector('form[action*="limpar"]'), ativo, {
+      processando: 'Limpando…',
+      status: 'Limpando medições…',
+      sucesso: 'Medições removidas.',
+      erro: 'Não foi possível limpar as medições.',
+      resetar: false,
+    });
   }
 
   const style = document.createElement('style');
