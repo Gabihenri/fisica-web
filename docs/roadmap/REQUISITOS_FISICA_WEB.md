@@ -18,9 +18,15 @@ O Física Web não será limitado a um conjunto fechado de práticas. A arquitet
 - perfil de acessibilidade no frontend;
 - integração VLibras;
 - API de relatório acessível/audiodescrição;
-- modelo inicial Supabase criado;
+- Supabase conectado ao backend Flask;
+- rota de diagnóstico `/api/health/supabase` implementada;
 - RLS habilitado nas tabelas do banco;
-- camada de conexão Supabase adicionada ao backend Flask.
+- persistência de escola, turma/série, grupo experimental e participantes implementada;
+- persistência de queda livre, pêndulo e plano inclinado implementada;
+- resultados estatísticos persistidos em `resultados_experimentais`;
+- medições registram origem e experimentos registram modo de aquisição;
+- entrada manual preparada como origem padrão, preservando evolução para aquisição automática e híbrida;
+- relatório PDF preparado para consumir contexto escolar persistido.
 
 ## Arquitetura universal do laboratório
 
@@ -153,6 +159,11 @@ Hierarquia atual: Escola → Turma/Série → Grupo → Experimento → Mediçõ
 
 Entidades atuais: escolas, turmas, grupos_experimentais, participantes, experimentos, medicoes, resultados_experimentais, relatorios e preferencias_acessibilidade.
 
+Campos transversais adicionados:
+
+- `experimentos.modo_aquisicao`: manual, automatico, hibrido ou importacao;
+- `medicoes.origem`: manual, arduino, raspberry_pi, esp32, sensor, hibrida ou importacao.
+
 A evolução para o núcleo universal deverá ser incremental e migrável, sem perda da estrutura validada.
 
 ## Segurança
@@ -169,18 +180,16 @@ Minimizar dados pessoais; pseudonimizar participantes; separar contexto escolar 
 
 ## Próximas prioridades
 
-1. validar definitivamente a conexão Flask → Supabase por rota de diagnóstico;
-2. persistir escola, turma/série e grupo experimental;
-3. persistir experimentos e medições existentes;
-4. persistir resultados e relatórios;
-5. conectar audiodescrição à API acessível e controles de reprodução;
-6. aperfeiçoar responsividade e validar PDF/gráficos em dispositivos móveis;
-7. projetar o catálogo de ambientes e experimentos sem quebrar a aplicação atual;
-8. projetar a camada genérica de variáveis e medições;
-9. implementar primeiro novo experimento sobre o núcleo reutilizável;
-10. projetar Hardware Lab e protocolo de aquisição;
-11. criar autenticação e perfis quando a fase de uso exigir;
-12. desenvolver protocolo de pesquisa e governança dos dados.
+1. validar o deploy da persistência no Render com um cadastro real de teste;
+2. persistir versões de relatórios e audiodescrições em `relatorios`;
+3. conectar audiodescrição à interface com ouvir, pausar, continuar e parar;
+4. aperfeiçoar responsividade e validar PDF/gráficos em dispositivos móveis;
+5. projetar o catálogo de ambientes e experimentos sem quebrar a aplicação atual;
+6. projetar a camada genérica de variáveis e medições;
+7. implementar primeiro novo experimento sobre o núcleo reutilizável;
+8. projetar Hardware Lab e protocolo de aquisição;
+9. criar autenticação e perfis quando a fase de uso exigir;
+10. desenvolver protocolo de pesquisa e governança dos dados.
 
 ## Regra de engenharia
 
