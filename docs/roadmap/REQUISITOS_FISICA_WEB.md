@@ -2,7 +2,9 @@
 
 ## Missão
 
-Desenvolver um laboratório web de Física inclusivo e multimodal, como evolução tecnológica da pesquisa sobre o estudo da ação da gravidade no ensino inclusivo.
+Desenvolver um laboratório web de Física inclusivo, multimodal e extensível, como evolução tecnológica da pesquisa sobre o estudo da ação da gravidade no ensino inclusivo.
+
+O Física Web não será limitado a um conjunto fechado de práticas. A arquitetura deverá sustentar ambientes laboratoriais de diferentes áreas da Física, experimentos pré-configurados e experimentos criados pelo professor.
 
 ## Estado funcional
 
@@ -20,39 +22,103 @@ Desenvolver um laboratório web de Física inclusivo e multimodal, como evoluç�
 - RLS habilitado nas tabelas do banco;
 - camada de conexão Supabase adicionada ao backend Flask.
 
-## Próximas prioridades
+## Arquitetura universal do laboratório
 
-1. validar definitivamente a conexão Flask → Supabase por rota de diagnóstico;
-2. persistir escola, turma/série e grupo experimental;
-3. persistir experimentos e medições;
-4. persistir resultados e relatórios;
-5. conectar botão de audiodescrição à API acessível;
-6. oferecer controles ouvir, pausar, continuar e parar;
-7. aperfeiçoar interface responsiva sem comprometer as rotas Flask;
-8. validar relatório PDF e gráfico em dispositivos móveis;
-9. criar autenticação e perfis quando a fase de uso exigir;
-10. desenvolver protocolo de pesquisa e governança dos dados;
-11. criar a camada de instrumentação física para aquisição automática de dados por microcontroladores e computadores de placa única.
+Todos os ambientes deverão reutilizar o mesmo ciclo experimental:
 
-## Banco oficial
+Contexto escolar → Grupo/participantes → Ambiente de Física → Experimento → Configuração → Aquisição → Dados brutos → Conversão/calibração → Dados físicos → Cálculos → Estatística/incerteza → Gráficos → Interpretação → Relatório multimodal → Persistência.
 
-Hierarquia: Escola → Turma/Série → Grupo → Experimento → Medições → Resultado → Relatório.
+A origem dos dados não altera o núcleo analítico. Cada medição deve registrar sua origem como manual, dispositivo/sensor, híbrida ou importação.
 
-Entidades: escolas, turmas, grupos_experimentais, participantes, experimentos, medicoes, resultados_experimentais, relatorios e preferencias_acessibilidade.
+## Ambientes laboratoriais
 
-## Acessibilidade
+### 1. Mecânica
 
-O sistema deve suportar múltiplas representações do mesmo resultado: visual/gráfica, textual, áudio/audiodescrição e Libras. O usuário escolhe voluntariamente recursos funcionais. Não inferir deficiência pela câmera.
+Queda livre, pêndulo simples, plano inclinado, MRU, MRUV, lançamento horizontal, lançamento oblíquo, leis de Newton, atrito, energia mecânica, quantidade de movimento, colisões, movimento circular, força centrípeta, lei de Hooke, sistema massa-mola, oscilações, torque, equilíbrio e máquinas simples.
+
+### 2. Termologia e Termodinâmica
+
+Temperatura, equilíbrio térmico, aquecimento e resfriamento, calorimetria, calor específico, mudanças de estado, dilatação, condução térmica e experimentos escolares com gases.
+
+### 3. Ondulatória e Acústica
+
+Período, frequência, comprimento de onda, velocidade de propagação, ondas em cordas, ressonância, ondas estacionárias, intensidade sonora, velocidade do som e efeito Doppler.
+
+### 4. Óptica
+
+Reflexão, refração, lei de Snell, índice de refração, ângulo crítico, espelhos, lentes, distância focal, formação de imagens, intensidade luminosa e, em fases posteriores, difração e interferência.
+
+### 5. Eletricidade e Eletrônica
+
+Lei de Ohm, resistores, associações série/paralelo, potência elétrica, resistividade, carga e descarga de capacitores, divisores de tensão, LDR, termistores e instrumentação eletrônica educacional.
+
+### 6. Magnetismo e Eletromagnetismo
+
+Campo magnético, eletroímã, sensores Hall, indução eletromagnética, lei de Faraday e transformadores em configurações educacionais seguras.
+
+### 7. Fluidos
+
+Densidade, pressão, pressão hidrostática, empuxo, princípio de Arquimedes, princípio de Pascal, vazão, continuidade e experimentos introdutórios relacionados a Bernoulli.
+
+### 8. Física Moderna
+
+Espectroscopia, LEDs e estimativas experimentais compatíveis com o ensino de Física Moderna. Experimentos que envolvam fontes ou equipamentos de risco somente poderão ser incluídos mediante protocolos específicos de segurança.
+
+### 9. Laboratório Livre
+
+O professor poderá criar experimentos próprios sem necessidade de alterar o código-fonte para cada nova atividade. O experimento configurável deverá permitir definir, progressivamente:
+
+- título e área da Física;
+- objetivo e questão investigativa;
+- referencial teórico;
+- variáveis independentes, dependentes e de controle;
+- grandezas e unidades;
+- instrumentos e sensores;
+- fórmulas e transformações;
+- valores de referência quando aplicáveis;
+- número e sequência de medições;
+- gráficos esperados;
+- critérios de validação;
+- análise estatística e incertezas;
+- perguntas investigativas;
+- critérios de interpretação;
+- formatos acessíveis de apresentação.
+
+## Núcleo experimental reutilizável
+
+A expansão para novos experimentos não deverá gerar uma tabela exclusiva para cada prática. A modelagem deverá evoluir para entidades genéricas, preservando compatibilidade com os experimentos já implementados.
+
+Entidades previstas para essa evolução:
+
+- ambientes_fisica;
+- catalogo_experimentos;
+- variaveis_experimentais;
+- configuracoes_experimento;
+- dispositivos;
+- sensores;
+- canais_aquisicao;
+- sessoes_aquisicao;
+- leituras;
+- transformacoes_calibracao.
+
+Essas entidades deverão complementar, e não substituir abruptamente, a estrutura existente.
+
+## Modos de aquisição
+
+Todo experimento compatível deverá oferecer:
+
+1. Manual — valores digitados pelo usuário a partir de instrumentos convencionais;
+2. Automático — dados recebidos de dispositivo/sensor;
+3. Híbrido — combinação de dados manuais e automáticos;
+4. Importação — futura entrada estruturada de conjuntos de dados previamente coletados.
 
 ## Instrumentação física e aquisição de dados
-
-O Física Web deverá oferecer um modo universal de uso manual e um modo de aquisição automática por hardware externo.
 
 ### Dispositivos previstos
 
 - Arduino Uno, Nano, Mega e placas compatíveis;
 - Raspberry Pi e outros computadores de placa única compatíveis;
-- futuramente ESP32 e dispositivos equivalentes;
+- ESP32 e dispositivos equivalentes em fase posterior;
 - sensores e interfaces conectados por portas analógicas ou digitais.
 
 ### Tipos de entrada
@@ -61,55 +127,37 @@ O Física Web deverá oferecer um modo universal de uso manual e um modo de aqui
 - entradas digitais para fotogates, chaves, sensores de presença, encoders, pulsos e eventos temporais;
 - comunicação serial USB para Arduino;
 - GPIO para Raspberry Pi;
-- possibilidade futura de conexão por Bluetooth, Wi-Fi, Web Serial e Web Bluetooth quando o navegador e o dispositivo permitirem.
+- possibilidade futura de Web Serial, Bluetooth, Wi-Fi e Web Bluetooth quando tecnicamente adequados.
 
-### Arquitetura prevista
+### Arquitetura de instrumentação
 
-Sensor → Arduino/Raspberry Pi → camada de aquisição → Física Web → validação/calibração → experimento → banco Supabase → análise → gráfico → relatório multimodal.
-
-A aplicação deve permitir ao usuário escolher entre:
-
-1. entrada manual de dados;
-2. aquisição automática por dispositivo;
-3. modo híbrido, no qual parte dos dados vem do sensor e parte é informada pelo usuário.
+Sensor → Arduino/Raspberry Pi → camada de aquisição → Física Web → validação/calibração → experimento → Supabase → análise → gráfico → relatório multimodal.
 
 ### Configuração de canais
 
-Cada canal de aquisição deverá poder registrar:
+Cada canal deverá poder registrar dispositivo, porta/pino, tipo analógico/digital, sensor, grandeza física, unidade, taxa de amostragem, fator de calibração, offset, resolução, intervalo válido, estado de conexão e timestamp.
 
-- dispositivo;
-- tipo de porta: analógica ou digital;
-- número/pino da porta;
-- sensor conectado;
-- grandeza física;
-- unidade;
-- taxa de amostragem;
-- fator de calibração;
-- offset;
-- resolução;
-- intervalo válido;
-- estado de conexão;
-- timestamp de cada amostra.
+### Transparência pedagógica
 
-### Requisitos pedagógicos
+A instrumentação não deverá transformar o experimento em caixa-preta. O estudante deverá poder compreender o sensor utilizado, a grandeza medida, o sinal bruto, a conversão para grandeza física, a calibração, os dados processados, o gráfico e as limitações/incertezas da medida.
 
-A instrumentação não deve transformar o experimento em uma caixa-preta. O estudante deverá conseguir visualizar:
+## Acessibilidade transversal
 
-- qual sensor está sendo utilizado;
-- qual grandeza está sendo medida;
-- como o sinal bruto é convertido em grandeza física;
-- calibração utilizada;
-- gráfico em tempo real;
-- dados brutos e dados processados;
-- incertezas e limitações do sensor.
+A acessibilidade pertence ao núcleo e não a um ambiente isolado. Todos os experimentos deverão poder produzir representações visual/gráfica, textual, áudio/audiodescrição e Libras conforme disponibilidade tecnológica.
 
-### Inclusão
+O usuário escolhe voluntariamente os recursos funcionais. Não inferir deficiência pela câmera. Dados adquiridos por sensores deverão alimentar as mesmas saídas acessíveis. Alertas poderão ser apresentados por som, vibração ou sinais visuais quando tecnicamente disponíveis.
 
-Os dados adquiridos por sensores devem alimentar as mesmas saídas acessíveis já previstas: gráfico, texto, audiodescrição, síntese de voz e Libras. Alertas experimentais poderão também ser apresentados por som, vibração ou sinais visuais quando tecnicamente disponíveis.
+## Banco oficial atual
 
-### Segurança
+Hierarquia atual: Escola → Turma/Série → Grupo → Experimento → Medições → Resultado → Relatório.
 
-O navegador não deverá executar comandos arbitrários no hardware. A comunicação deve utilizar protocolos controlados, lista explícita de comandos permitidos e validação de limites. Saídas digitais capazes de acionar atuadores deverão ser tratadas separadamente das entradas de aquisição e exigir confirmação explícita quando houver risco físico.
+Entidades atuais: escolas, turmas, grupos_experimentais, participantes, experimentos, medicoes, resultados_experimentais, relatorios e preferencias_acessibilidade.
+
+A evolução para o núcleo universal deverá ser incremental e migrável, sem perda da estrutura validada.
+
+## Segurança
+
+O navegador não deverá executar comandos arbitrários no hardware. A comunicação deve utilizar protocolos controlados, lista explícita de comandos permitidos e validação de limites. Saídas digitais capazes de acionar atuadores deverão ser tratadas separadamente das entradas de aquisição e exigir salvaguardas adicionais quando houver risco físico.
 
 ## Visão computacional futura
 
@@ -118,6 +166,21 @@ Pesquisar reconhecimento de Libras por mãos, corpo e componentes não manuais. 
 ## Privacidade e pesquisa
 
 Minimizar dados pessoais; pseudonimizar participantes; separar contexto escolar de identidade pessoal; não armazenar diagnóstico de deficiência quando preferências funcionais forem suficientes; documentar consentimento e governança antes de pesquisa formal com participantes.
+
+## Próximas prioridades
+
+1. validar definitivamente a conexão Flask → Supabase por rota de diagnóstico;
+2. persistir escola, turma/série e grupo experimental;
+3. persistir experimentos e medições existentes;
+4. persistir resultados e relatórios;
+5. conectar audiodescrição à API acessível e controles de reprodução;
+6. aperfeiçoar responsividade e validar PDF/gráficos em dispositivos móveis;
+7. projetar o catálogo de ambientes e experimentos sem quebrar a aplicação atual;
+8. projetar a camada genérica de variáveis e medições;
+9. implementar primeiro novo experimento sobre o núcleo reutilizável;
+10. projetar Hardware Lab e protocolo de aquisição;
+11. criar autenticação e perfis quando a fase de uso exigir;
+12. desenvolver protocolo de pesquisa e governança dos dados.
 
 ## Regra de engenharia
 
