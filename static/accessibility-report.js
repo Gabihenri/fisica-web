@@ -102,6 +102,24 @@
     });
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', inicializar);
-  else inicializar();
+  function carregarCamadaExperimental() {
+    if (document.querySelector('script[data-experiment-focus]')) return;
+    const script = document.createElement('script');
+    script.src = '/static/experiment-focus.js';
+    script.defer = true;
+    script.dataset.experimentFocus = 'true';
+    document.body.appendChild(script);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      inicializar();
+      carregarCamadaExperimental();
+    });
+  } else {
+    inicializar();
+    carregarCamadaExperimental();
+  }
+
+  document.addEventListener('fisicaweb:experiment-updated', inicializar);
 })();
