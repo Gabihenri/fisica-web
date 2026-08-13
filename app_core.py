@@ -3,7 +3,7 @@ import json
 import math
 import os
 
-from db import cadastrar_contexto_escolar, limpar_medicoes, listar_medicoes, obter_contexto_grupo, registrar_medicao, salvar_resultado, verificar_conexao_supabase
+from db import cadastrar_contexto_escolar, excluir_grupo_experimental, limpar_medicoes, listar_medicoes, obter_contexto_grupo, registrar_medicao, salvar_resultado, verificar_conexao_supabase
 from report_engine import gerar_pdf_cientifico, _grafico_temp
 from scientific_engine import GRAVIDADE_REFERENCIA, analisar_experimento
 
@@ -89,6 +89,19 @@ def salvar_grupo():
     try:
         c=cadastrar_contexto_escolar(payload);return redirect(f"/?grupo_id={c['grupo']['id']}")
     except Exception as exc:return f"Nao foi possivel salvar o contexto escolar no banco: {exc}",500
+
+@app.route("/excluir-grupo",methods=["POST"])
+def excluir_grupo():
+    gid=request.form.get("grupo_id","").strip(); confirmacao=request.form.get("confirmacao","")
+    if not gid:return "Grupo não informado.",400
+    if confirmacao!="EXCLUIR":return "Confirmação de exclusão inválida.",400
+    try:
+        excluir_grupo_experimental(gid)
+        try:
+            if os.path.exists(CAMINHO_GRUPO):os.remove(CAMINHO_GRUPO)
+        except OSError:pass
+        return redirect("/?grupo_excluido=1#contexto")
+    except Exception as exc:return f"Não foi possível excluir o grupo: {exc}",500
 
 @app.route("/queda-livre",methods=["POST"])
 def queda_livre():
