@@ -3,6 +3,11 @@ from flask import render_template
 from app_core import app
 
 
+@app.route("/laboratorio-movel")
+def laboratorio_movel():
+    return render_template("laboratorio_movel.html")
+
+
 @app.route("/laboratorio-sensores")
 def laboratorio_sensores():
     return render_template("laboratorio_sensores.html")
@@ -11,6 +16,11 @@ def laboratorio_sensores():
 @app.route("/laboratorio-elevador")
 def laboratorio_elevador():
     return render_template("laboratorio_elevador.html")
+
+
+@app.route("/laboratorio-pendulo")
+def laboratorio_pendulo():
+    return app.send_static_file("laboratorio-pendulo.html")
 
 
 @app.route("/laboratorio-plano-inclinado")
