@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Frequência Sonora — Física Web</title>
+<style>
+:root{--bg:#f5f7fb;--surface:#fff;--soft:#eef4fa;--text:#152033;--muted:#617083;--primary:#15558f;--deep:#092f55;--border:#d9e1eb;--ok:#176b3a;--warn:#8a5a00;--danger:#9a2e3a;--radius:18px;--shadow:0 8px 26px rgba(24,48,78,.07)}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Arial,sans-serif;line-height:1.55}button,input{font:inherit}.container{width:min(1050px,calc(100% - 24px));margin:auto}.top{background:linear-gradient(135deg,var(--deep),var(--primary));color:#fff;padding:26px 0}.top h1{font-size:clamp(1.9rem,5vw,2.8rem);margin:4px 0}.top p{max-width:760px;margin:0;color:#e4edf7}.eyebrow{font-size:.76rem;text-transform:uppercase;letter-spacing:.12em;font-weight:800;opacity:.82}.nav{background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}.nav .container{display:flex;gap:8px;overflow:auto;padding:9px 0}.nav a{white-space:nowrap;text-decoration:none;color:var(--deep);font-weight:750;padding:8px 10px;border-radius:9px}.nav a:hover,.nav a:focus{background:var(--soft)}main{padding:20px 0 50px}.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-top:14px}.card h2,.card h3{margin-top:0}.muted{color:var(--muted)}.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.step{background:var(--soft);border-radius:12px;padding:12px}.step strong{display:block;color:var(--deep)}.controls{display:flex;gap:9px;flex-wrap:wrap}.button{display:inline-flex;align-items:center;justify-content:center;min-height:46px;border-radius:10px;padding:10px 14px;font-weight:800;cursor:pointer}.primary{border:0;background:var(--primary);color:#fff}.secondary{background:#fff;color:var(--deep);border:1px solid #b9c7d7}.danger{background:#fff;color:var(--danger);border:1px solid #e3bcc2}.button:disabled{opacity:.5;cursor:not-allowed}.status{margin-top:12px;padding:11px 13px;border-radius:11px;background:#f8fbff;border:1px solid #cbdbea;color:#334b65}.status.ok{background:#edf8f1;border-color:#afd9bc;color:var(--ok)}.status.warn{background:#fff8e8;border-color:#ead29a;color:var(--warn)}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}.metric{background:var(--soft);border:1px solid var(--border);border-radius:13px;padding:13px}.metric small{display:block;color:var(--muted);font-weight:700}.metric strong{display:block;font-size:1.5rem;color:var(--deep);margin-top:3px}.viz{margin-top:14px;border:1px solid var(--border);border-radius:13px;overflow:hidden;background:#fff}.viz-title{padding:10px 12px 0;font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;font-weight:850;color:var(--primary)}canvas{display:block;width:100%;height:230px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field label{display:block;font-weight:750;margin-bottom:5px}.field input{width:100%;min-height:44px;border:1px solid #bdc9d6;border-radius:10px;padding:9px 11px;background:#fff}.result{background:#f8fbff;border-left:4px solid var(--primary);padding:13px 15px;border-radius:10px}.table-wrap{overflow:auto;border:1px solid var(--border);border-radius:12px;margin-top:12px}table{width:100%;border-collapse:collapse;min-width:560px}th,td{padding:9px 10px;border-bottom:1px solid var(--border);text-align:center}th{font-size:.82rem;background:#f7f9fc;color:#41536a}.safety{background:#fff8e8;border:1px solid #ead29a;padding:13px 15px;border-radius:12px}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(max-width:780px){.flow,.metrics,.grid2{grid-template-columns:repeat(2,1fr)}}@media(max-width:520px){.flow,.metrics,.grid2{grid-template-columns:1fr}.card{padding:16px;box-shadow:none}.controls>*{flex:1 1 100%}}
+</style>
+</head>
+<body>
+<header class="top"><div class="container"><div class="eyebrow">Física Web · Ondulatória</div><h1>🎙️ Frequência Sonora</h1><p>Use o microfone do smartphone para observar o espectro de áudio, identificar a frequência dominante e relacionar o sinal medido aos conceitos de frequência, período e ondas sonoras.</p></div></header>
+<nav class="nav" aria-label="Navegação"><div class="container"><a href="/laboratorio-movel">← Laboratório Móvel</a><a href="#medir">Medir</a><a href="#analisar">Analisar</a><a href="#dados">Dados</a></div></nav>
+<main class="container">
+<section class="card"><h2>Roteiro experimental</h2><div class="flow"><div class="step"><strong>1. Preparar</strong><small>Escolha uma fonte sonora contínua e mantenha o aparelho parado.</small></div><div class="step"><strong>2. Medir</strong><small>Autorize o microfone e inicie a aquisição.</small></div><div class="step"><strong>3. Analisar</strong><small>Observe o pico dominante no espectro e a estabilidade da leitura.</small></div><div class="step"><strong>4. Relatar</strong><small>Registre médias, dispersão e interpretação física.</small></div></div></section>
+<section class="card"><div class="safety"><strong>Segurança:</strong> não aproxime fontes sonoras intensas do ouvido nem use volumes elevados. Para testes escolares, prefira voz, diapasão, instrumento musical ou gerador de tom em intensidade confortável.</div></section>
+<section id="medir" class="card"><h2>Aquisição pelo microfone</h2><p class="muted">A leitura acontece somente após sua autorização. O áudio não é enviado ao servidor nem armazenado; a análise é feita localmente no navegador.</p><div class="controls"><button id="btn-start" class="button primary" type="button">Ativar microfone e medir</button><button id="btn-stop" class="button secondary" type="button" disabled>Parar</button><button id="btn-register" class="button secondary" type="button" disabled>Registrar leitura</button><button id="btn-clear" class="button danger" type="button">Limpar dados</button></div><div id="status" class="status" role="status" aria-live="polite">Aguardando início da medição.</div><div class="metrics"><div class="metric"><small>Frequência dominante</small><strong><span id="freq">—</span> Hz</strong></div><div class="metric"><small>Período correspondente</small><strong><span id="period">—</span> ms</strong></div><div class="metric"><small>Nível relativo</small><strong><span id="level">—</span> %</strong></div><div class="metric"><small>Amostras registradas</small><strong id="count">0</strong></div></div><div class="viz"><div class="viz-title">Espectro de frequências</div><canvas id="spectrum" width="1000" height="230" aria-label="Gráfico do espectro de frequências"></canvas></div><p id="spoken" class="sr-only" aria-live="polite"></p></section>
+<section id="analisar" class="card"><h2>Análise automática</h2><div class="grid2"><div><h3>Resumo estatístico</h3><div class="result"><p><strong>Frequência média:</strong> <span id="mean">—</span> Hz</p><p><strong>Desvio padrão:</strong> <span id="sd">—</span> Hz</p><p><strong>Período médio:</strong> <span id="mean-period">—</span> ms</p><p><strong>Variação relativa:</strong> <span id="cv">—</span> %</p></div></div><div><h3>Comparação com valor esperado</h3><div class="field"><label for="expected">Frequência esperada (Hz)</label><input id="expected" type="number" min="1" step="0.1" placeholder="Ex.: 440"></div><div class="result" style="margin-top:10px"><p><strong>Erro relativo:</strong> <span id="error">—</span> %</p><p class="muted">Use esta comparação quando a fonte tiver frequência nominal conhecida, como um diapasão ou gerador de tom.</p></div></div></div></section>
+<section id="dados" class="card"><h2>Dados registrados</h2><div class="controls"><button id="btn-csv" class="button secondary" type="button" disabled>Baixar CSV</button></div><div class="table-wrap"><table><thead><tr><th>#</th><th>Tempo (s)</th><th>Frequência (Hz)</th><th>Período (ms)</th><th>Nível relativo (%)</th></tr></thead><tbody id="rows"><tr><td colspan="5" class="muted">Nenhuma leitura registrada.</td></tr></tbody></table></div></section>
+</main>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const btnStart = $('btn-start'), btnStop = $('btn-stop'), btnRegister = $('btn-register'), btnClear = $('btn-clear'), btnCsv = $('btn-csv');
+  const status = $('status'), canvas = $('spectrum'), ctx = canvas.getContext('2d');
+  let audioContext = null, analyser = null, source = null, stream = null, raf = null, startedAt = 0;
+  let currentFreq = null, currentLevel = null, lastAnnounced = 0;
+  const records = [];
+
+  function setStatus(text, kind='') { status.textContent = text; status.className = 'status' + (kind ? ' ' + kind : ''); }
+  function fmt(v, d=1) { return Number.isFinite(v) ? v.toFixed(d) : '—'; }
+  function mean(arr) { return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : NaN; }
+  function sd(arr) { if(arr.length < 2) return arr.length ? 0 : NaN; const m=mean(arr); return Math.sqrt(arr.reduce((s,x)=>s+(x-m)**2,0)/(arr.length-1)); }
+
+  function dominantFrequency(data, sampleRate) {
+    let max = 0, index = -1;
+    const minHz = 50, maxHz = Math.min(5000, sampleRate/2);
+    const binHz = sampleRate / (data.length * 2);
+    const start = Math.max(1, Math.floor(minHz/binHz));
+    const end = Math.min(data.length-1, Math.ceil(maxHz/binHz));
+    for(let i=start;i<=end;i++) { if(data[i] > max) { max = data[i]; index = i; } }
+    if(index < 0 || max < 25) return {freq:null, level:max};
+    let refined = index;
+    if(index>0 && index<data.length-1) {
+      const a=data[index-1], b=data[index], c=data[index+1];
+      const denom = a - 2*b + c;
+      if(denom !== 0) refined = index + 0.5*(a-c)/denom;
+    }
+    return {freq: refined*binHz, level:max};
+  }
+
+  function draw(data, sampleRate) {
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,w,h);
+    ctx.strokeStyle = '#d9e1eb'; ctx.lineWidth = 1;
+    for(let i=1;i<5;i++){ const y=h*i/5; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+    const maxDisplayHz = 3000;
+    const binHz = sampleRate/(data.length*2);
+    const bins = Math.min(data.length, Math.floor(maxDisplayHz/binHz));
+    ctx.strokeStyle = '#15558f'; ctx.lineWidth = 2; ctx.beginPath();
+    for(let i=0;i<bins;i++){ const x=(i/(bins-1))*w; const y=h-(data[i]/255)*h; if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y); }
+    ctx.stroke();
+    ctx.fillStyle='#617083'; ctx.font='24px Arial'; ctx.fillText('0 Hz',10,h-10); ctx.fillText('3 kHz',w-75,h-10);
+  }
+
+  function tick(ts) {
+    if(!analyser) return;
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(data);
+    const d = dominantFrequency(data, audioContext.sampleRate);
+    currentFreq = d.freq;
+    currentLevel = Math.min(100, Math.round((d.level/255)*100));
+    $('freq').textContent = currentFreq ? fmt(currentFreq,1) : '—';
+    $('period').textContent = currentFreq ? fmt(1000/currentFreq,2) : '—';
+    $('level').textContent = Number.isFinite(currentLevel) ? currentLevel : '—';
+    btnRegister.disabled = !currentFreq;
+    draw(data, audioContext.sampleRate);
+    if(currentFreq && ts-lastAnnounced>5000){ $('spoken').textContent = `Frequência dominante aproximada ${Math.round(currentFreq)} hertz.`; lastAnnounced=ts; }
+    raf = requestAnimationFrame(tick);
+  }
+
+  async function start() {
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ setStatus('Este navegador não oferece acesso compatível ao microfone.', 'warn'); return; }
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false},video:false});
+      const AC = window.AudioContext || window.webkitAudioContext;
+      audioContext = new AC();
+      await audioContext.resume();
+      analyser = audioContext.createAnalyser(); analyser.fftSize = 4096; analyser.smoothingTimeConstant = 0.72;
+      source = audioContext.createMediaStreamSource(stream); source.connect(analyser);
+      startedAt = performance.now(); btnStart.disabled=true; btnStop.disabled=false;
+      setStatus('Microfone ativo. Produza um som contínuo próximo ao aparelho.', 'ok');
+      raf = requestAnimationFrame(tick);
+    } catch(e) {
+      setStatus('Não foi possível acessar o microfone. Verifique a permissão do navegador e tente novamente.', 'warn');
+    }
+  }
+
+  function stop() {
+    if(raf) cancelAnimationFrame(raf); raf=null;
+    if(stream) stream.getTracks().forEach(t=>t.stop());
+    if(audioContext) audioContext.close();
+    stream=null; source=null; analyser=null; audioContext=null; currentFreq=null; currentLevel=null;
+    btnStart.disabled=false; btnStop.disabled=true; btnRegister.disabled=true;
+    setStatus('Medição encerrada. Os dados registrados permanecem disponíveis abaixo.');
+  }
+
+  function register() {
+    if(!currentFreq) return;
+    const t = startedAt ? (performance.now()-startedAt)/1000 : 0;
+    records.push({t, freq:currentFreq, period:1000/currentFreq, level:currentLevel});
+    renderRecords();
+    setStatus(`Leitura registrada: ${fmt(currentFreq,1)} Hz.`, 'ok');
+  }
+
+  function renderRecords() {
+    $('count').textContent=records.length; btnCsv.disabled=!records.length;
+    if(!records.length){ $('rows').innerHTML='<tr><td colspan="5" class="muted">Nenhuma leitura registrada.</td></tr>'; }
+    else $('rows').innerHTML=records.map((r,i)=>`<tr><td>${i+1}</td><td>${fmt(r.t,2)}</td><td>${fmt(r.freq,2)}</td><td>${fmt(r.period,3)}</td><td>${r.level}</td></tr>`).join('');
+    const f=records.map(r=>r.freq), m=mean(f), s=sd(f);
+    $('mean').textContent=fmt(m,2); $('sd').textContent=fmt(s,2); $('mean-period').textContent=Number.isFinite(m)?fmt(1000/m,3):'—'; $('cv').textContent=Number.isFinite(m)&&m?fmt((s/m)*100,2):'—';
+    updateError();
+  }
+
+  function updateError(){ const expected=parseFloat($('expected').value), m=mean(records.map(r=>r.freq)); $('error').textContent=expected>0&&Number.isFinite(m)?fmt(Math.abs(m-expected)/expected*100,2):'—'; }
+  function clearAll(){ records.length=0; renderRecords(); setStatus('Dados registrados foram limpos.'); }
+  function csv(){ if(!records.length)return; const lines=['indice,tempo_s,frequencia_hz,periodo_ms,nivel_relativo_pct',...records.map((r,i)=>[i+1,r.t.toFixed(3),r.freq.toFixed(3),r.period.toFixed(4),r.level].join(','))]; const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='fisica-web-frequencia-sonora.csv'; a.click(); URL.revokeObjectURL(a.href); }
+
+  btnStart.addEventListener('click',start); btnStop.addEventListener('click',stop); btnRegister.addEventListener('click',register); btnClear.addEventListener('click',clearAll); btnCsv.addEventListener('click',csv); $('expected').addEventListener('input',updateError); window.addEventListener('pagehide',stop);
+  renderRecords();
+})();
+</script>
+</body>
+</html>
