@@ -1,0 +1,24 @@
+{
+  "name": "fisica-web-mobile",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Aplicativo móvel do Física Web para Android e iOS.",
+  "scripts": {
+    "cap:sync": "cap sync",
+    "cap:android": "cap open android",
+    "cap:ios": "cap open ios",
+    "cap:add:android": "cap add android",
+    "cap:add:ios": "cap add ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.4.2",
+    "@capacitor/core": "8.4.2",
+    "@capacitor/ios": "8.4.2",
+    "@capacitor/network": "8.0.1",
+    "@capacitor/preferences": "8.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.4.2",
+    "typescript": "^5.9.0"
+  }
+}
