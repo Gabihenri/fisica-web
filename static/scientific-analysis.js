@@ -110,3 +110,12 @@
   atualizar();
   document.addEventListener('fisicaweb:experiment-updated', atualizar);
 })();
+
+(() => {
+  if (document.querySelector('script[data-fisica-acquisition]')) return;
+  const script = document.createElement('script');
+  script.src = '/static/acquisition-layer.js?v=1';
+  script.defer = true;
+  script.dataset.fisicaAcquisition = '1';
+  document.head.appendChild(script);
+})();
