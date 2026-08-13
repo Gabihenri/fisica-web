@@ -1,0 +1,47 @@
+{
+  "id": "/",
+  "name": "Física Web — Laboratório Digital Inclusivo",
+  "short_name": "Física Web",
+  "description": "Laboratório digital inclusivo para experimentação, aquisição de dados, análise científica e relatórios acessíveis.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#f5f7fb",
+  "theme_color": "#15558f",
+  "categories": ["education", "science", "productivity"],
+  "icons": [
+    {
+      "src": "/static/img/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/img/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Experimentos",
+      "short_name": "Experimentos",
+      "url": "/#experimentos"
+    },
+    {
+      "name": "Ambientes de Física",
+      "short_name": "Ambientes",
+      "url": "/#ambientes"
+    },
+    {
+      "name": "Acessibilidade",
+      "short_name": "Acessibilidade",
+      "url": "/#acessibilidade"
+    }
+  ]
+}
