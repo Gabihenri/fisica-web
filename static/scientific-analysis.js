@@ -102,7 +102,7 @@
     .metric{border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--surface2)}.metric small{display:block;color:var(--muted);font-weight:700}.metric strong{display:block;font-size:1.08rem;margin-top:3px}.metric span{font-size:.78rem;color:var(--muted)}
     .scientific-chart-card{border:1px solid var(--border);border-radius:14px;padding:14px;background:var(--surface)}.scientific-chart-copy p{margin:5px 0;color:var(--muted)}.scientific-chart{display:block;width:100%;height:auto;margin-top:12px;border-radius:10px}
     .scientific-interpretation{margin-top:12px;padding:14px;border-radius:12px;background:var(--surface2)}.scientific-interpretation h4{margin:0 0 5px}.scientific-interpretation p{margin:0!important;color:var(--text)!important}
-    .catalog-mode .scientific-panel{display:none!important}
+    .catalog-mode .scientific-panel,.catalog-mode .acquisition-panel{display:none!important}
     @media(max-width:600px){.scientific-head{display:block}.scientific-live{display:block;margin-top:4px}.scientific-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.metric{padding:10px}.scientific-chart-card{padding:11px}}
   `;
   document.head.appendChild(style);
