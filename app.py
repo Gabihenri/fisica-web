@@ -28,5 +28,10 @@ def laboratorio_plano_inclinado():
     return render_template("laboratorio_plano_inclinado.html")
 
 
+@app.route("/laboratorio-som")
+def laboratorio_som():
+    return render_template("laboratorio_som.html")
+
+
 if __name__ == "__main__":
     app.run(debug=True)
