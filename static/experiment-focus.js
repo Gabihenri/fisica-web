@@ -74,8 +74,8 @@
     if (!status) {
       status = document.createElement('p');
       status.className = 'async-status';
-      status.setAttribute('role', 'status');
-      status.setAttribute('aria-live', 'polite');
+      status.setAttribute('role', tipo === 'erro' ? 'alert' : 'status');
+      status.setAttribute('aria-live', tipo === 'erro' ? 'assertive' : 'polite');
       artigo.querySelector('form.measure')?.insertAdjacentElement('afterend', status);
     }
     mostrar(status);
@@ -83,8 +83,59 @@
     status.textContent = texto;
   }
 
+  function numeroCampo(form, nome) {
+    const campo = form.querySelector(`[name="${nome}"]`);
+    if (!campo) return { campo: null, valor: NaN };
+    const valor = Number(String(campo.value).trim().replace(',', '.'));
+    return { campo, valor };
+  }
+
+  function marcarInvalido(campo, invalido) {
+    if (!campo) return;
+    campo.setAttribute('aria-invalid', invalido ? 'true' : 'false');
+    campo.classList.toggle('field-invalid', invalido);
+  }
+
+  function validarMedicao(form, artigo) {
+    const chave = artigo.dataset.experiment;
+    const erros = [];
+    form.querySelectorAll('input').forEach(c => marcarInvalido(c, false));
+
+    if (chave === 'queda') {
+      const altura = numeroCampo(form, 'altura');
+      const tempo = numeroCampo(form, 'tempo');
+      if (!Number.isFinite(altura.valor) || altura.valor <= 0) { erros.push('Informe uma altura maior que zero.'); marcarInvalido(altura.campo, true); }
+      if (!Number.isFinite(tempo.valor) || tempo.valor <= 0) { erros.push('Informe um tempo maior que zero.'); marcarInvalido(tempo.campo, true); }
+    }
+
+    if (chave === 'pendulo') {
+      const comprimento = numeroCampo(form, 'comprimento');
+      const periodo = numeroCampo(form, 'periodo');
+      if (!Number.isFinite(comprimento.valor) || comprimento.valor <= 0) { erros.push('Informe um comprimento maior que zero.'); marcarInvalido(comprimento.campo, true); }
+      if (!Number.isFinite(periodo.valor) || periodo.valor <= 0) { erros.push('Informe um período maior que zero.'); marcarInvalido(periodo.campo, true); }
+    }
+
+    if (chave === 'plano') {
+      const angulo = numeroCampo(form, 'angulo');
+      const distancia = numeroCampo(form, 'distancia');
+      const tempo = numeroCampo(form, 'tempo');
+      if (!Number.isFinite(angulo.valor) || angulo.valor <= 0 || angulo.valor >= 90) { erros.push('Informe um ângulo entre 0° e 90°.'); marcarInvalido(angulo.campo, true); }
+      if (!Number.isFinite(distancia.valor) || distancia.valor <= 0) { erros.push('Informe uma distância maior que zero.'); marcarInvalido(distancia.campo, true); }
+      if (!Number.isFinite(tempo.valor) || tempo.valor <= 0) { erros.push('Informe um tempo maior que zero.'); marcarInvalido(tempo.campo, true); }
+    }
+
+    if (erros.length) {
+      mensagem(artigo, erros.join(' '), 'erro');
+      const primeiro = form.querySelector('.field-invalid');
+      primeiro?.focus();
+      return false;
+    }
+    return true;
+  }
+
   async function executarPostSemRecarregar(form, artigo, opcoes = {}) {
     if (form.dataset.enviando === '1') return;
+    if (form.classList.contains('measure') && !validarMedicao(form, artigo)) return;
     form.dataset.enviando = '1';
 
     const botao = form.querySelector('button[type="submit"]');
@@ -119,7 +170,8 @@
       mensagem(artigo, opcoes.sucesso || 'Operação concluída.');
       document.dispatchEvent(new CustomEvent('fisicaweb:experiment-updated'));
     } catch (erro) {
-      mensagem(artigo, opcoes.erro || 'Não foi possível concluir a operação.', 'erro');
+      const detalhe = String(erro?.message || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      mensagem(artigo, detalhe && detalhe.length < 220 ? detalhe : (opcoes.erro || 'Não foi possível concluir a operação.'), 'erro');
       console.error('Física Web — operação assíncrona:', erro);
     } finally {
       window.setTimeout(() => {
@@ -165,6 +217,11 @@
     ativo.classList.add('experiment-active');
     adicionarCabecalhoFoco(ativo);
 
+    ativo.querySelectorAll('form.measure input[inputmode="decimal"]').forEach(input => {
+      input.setAttribute('min', input.name === 'angulo' ? '0.01' : '0.000001');
+      input.setAttribute('step', 'any');
+    });
+
     protegerFormulario(ativo.querySelector('form.measure'), ativo, {
       processando: 'Registrando…',
       status: 'Salvando medição…',
@@ -202,7 +259,8 @@
     .focus-toolbar a{text-decoration:none;font-weight:750}
     .focus-toolbar span{font-size:.85rem;color:var(--muted)}
     .async-status{padding:10px 12px;border-radius:10px;background:var(--surface2);font-weight:650}
-    .async-status[data-tipo="erro"]{background:#fff0f1;color:#8a2632}
+    .async-status[data-tipo="erro"]{background:#fff0f1;color:#8a2632;border:1px solid #e6b7bd}
+    .field-invalid{border-color:#9b3a44!important;outline:2px solid rgba(155,58,68,.16)}
     @media(max-width:600px){.experiment-focus-mode #experimentos{padding:14px}.experiment-focus-mode .experiment-active{padding:0}.focus-toolbar{align-items:flex-start;flex-direction:column}.catalog-mode .experiment{min-height:160px}}
   `;
   document.head.appendChild(style);
