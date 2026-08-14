@@ -3,6 +3,11 @@ from flask import render_template
 from app_core import app
 
 
+@app.route("/acesso")
+def acesso():
+    return render_template("acesso.html")
+
+
 @app.route("/laboratorio-movel")
 def laboratorio_movel():
     return render_template("laboratorio_movel.html")
