@@ -46,6 +46,9 @@ jobs:
       - name: Generate Android project
         run: npx cap add android
 
+      - name: Generate branded Android icons
+        run: npm run assets:android
+
       - name: Synchronize Capacitor
         run: npx cap sync android
 
