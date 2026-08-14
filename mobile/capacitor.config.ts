@@ -5,6 +5,11 @@ const config: CapacitorConfig = {
   appName: 'Física Web',
   webDir: 'www',
   bundledWebRuntime: false,
+  server: {
+    url: 'https://fisica-web.onrender.com',
+    cleartext: false,
+    allowNavigation: ['fisica-web.onrender.com']
+  },
   android: {
     allowMixedContent: false
   },
