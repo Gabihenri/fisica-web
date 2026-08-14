@@ -65,6 +65,10 @@ def relatorio_acessivel(chave,config):
     texto=" ".join([abertura]+medicoes+[resumo,descricao,a["interpretacao"],parecer])
     return {"experimento":chave,"titulo":config["titulo"],"estatisticas":stats,"modelo":modelo,"secoes":{"abertura":abertura,"medicoes":medicoes,"resultado":resumo,"audiodescricao_grafico":descricao,"interpretacao":a["interpretacao"],"parecer_pedagogico":parecer},"texto_completo":texto}
 
+@app.route("/acesso")
+def acesso():
+    return render_template("acesso.html")
+
 @app.route("/")
 def index():
     grupo_id=request.args.get("grupo_id","").strip();contexto=None;mensagem_banco=""
@@ -167,11 +171,5 @@ def grafico_experimento(experimento):
 def gerar_pdf(experimento):
     gid=request.args.get("grupo_id","").strip();c=configuracao_experimento(experimento,gid)
     if not c:return "Experimento nao identificado.",404
-    contexto=None
-    if gid:
-        try:contexto=obter_contexto_grupo(gid)
-        except Exception:pass
-    buffer=gerar_pdf_cientifico(experimento,c["titulo"],c["teoria"],c["dados"],contexto)
-    return send_file(buffer,as_attachment=True,download_name=f"fisica_web_relatorio_{experimento}.pdf",mimetype="application/pdf")
-
-if __name__=="__main__":app.run(debug=True)
+    caminho=gerar_pdf_cientifico(experimento,c["dados"],grupo_id=gid)
+    return send_file(caminho,as_attachment=True,download_name=f"relatorio_{experimento}.pdf")
