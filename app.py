@@ -28,11 +28,6 @@ def _salvar_sessao_auth(auth_response):
         session["user_email"] = getattr(user, "email", "") or ""
 
 
-@app.route("/acesso")
-def acesso():
-    return render_template("acesso.html")
-
-
 @app.route("/api/acesso/login", methods=["POST"])
 def api_acesso_login():
     dados = request.get_json(silent=True) or {}
@@ -81,22 +76,52 @@ def api_acesso_cadastro():
 def api_acesso_google():
     try:
         origem = request.url_root.rstrip("/")
-        destino = f"{origem}/acesso"
+        callback = f"{origem}/auth/callback"
         resposta = _auth_client().auth.sign_in_with_oauth({
             "provider": "google",
-            "options": {"redirect_to": destino},
+            "options": {"redirect_to": callback},
         })
         url = getattr(resposta, "url", None)
         if not url and isinstance(resposta, dict):
             url = resposta.get("url")
         if not url:
-            return jsonify({"erro": "O Google OAuth ainda não está habilitado no Supabase Auth."}), 503
+            return redirect("/acesso?erro=google_nao_habilitado")
         return redirect(url)
     except Exception as exc:
         mensagem = str(exc).lower()
         if "provider" in mensagem and ("enabled" in mensagem or "unsupported" in mensagem):
-            return jsonify({"erro": "O provedor Google ainda não está habilitado no Supabase Auth."}), 503
-        return jsonify({"erro": "Não foi possível iniciar o acesso pelo Google."}), 503
+            return redirect("/acesso?erro=google_nao_habilitado")
+        return redirect("/acesso?erro=google_indisponivel")
+
+
+@app.route("/auth/callback")
+def auth_callback():
+    erro = request.args.get("error_description") or request.args.get("error")
+    if erro:
+        return redirect("/acesso?erro=google_cancelado")
+
+    codigo = request.args.get("code", "").strip()
+    if not codigo:
+        return redirect("/acesso?erro=callback_invalido")
+
+    try:
+        resposta = _auth_client().auth.exchange_code_for_session({"auth_code": codigo})
+        _salvar_sessao_auth(resposta)
+        if not session.get("user_id"):
+            return redirect("/acesso?erro=sessao_nao_criada")
+        return redirect("/")
+    except Exception:
+        return redirect("/acesso?erro=troca_codigo")
+
+
+@app.route("/api/acesso/status")
+def api_acesso_status():
+    return jsonify({
+        "autenticado": bool(session.get("user_id")),
+        "email": session.get("user_email", ""),
+        "rota_acesso": "/acesso",
+        "google_callback": "/auth/callback",
+    })
 
 
 @app.route("/api/acesso/logout", methods=["POST"])
