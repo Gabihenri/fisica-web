@@ -28,6 +28,63 @@
     el.style.removeProperty('display');
   }
 
+  function escolherVozPtBR() {
+    if (!('speechSynthesis' in window)) return null;
+    const vozes = window.speechSynthesis.getVoices();
+    const pt = vozes.filter(v => String(v.lang || '').toLowerCase().startsWith('pt-br'));
+    const preferidas = ['premium', 'enhanced', 'natural', 'luciana', 'joana', 'francisca'];
+    return pt.find(v => preferidas.some(p => String(v.name || '').toLowerCase().includes(p))) || pt[0] || vozes.find(v => String(v.lang || '').toLowerCase().startsWith('pt')) || null;
+  }
+
+  function falarConfirmacao(texto) {
+    if (!('speechSynthesis' in window)) return false;
+    const synth = window.speechSynthesis;
+    const u = new SpeechSynthesisUtterance(texto);
+    u.lang = 'pt-BR';
+    u.rate = 0.9;
+    u.pitch = 1.02;
+    const voz = escolherVozPtBR();
+    if (voz) u.voice = voz;
+    synth.cancel();
+    synth.speak(u);
+    return true;
+  }
+
+  function configurarControlesGlobais() {
+    const botaoAudio = document.getElementById('toggle-voice');
+    const painelAcessibilidade = document.getElementById('acessibilidade');
+    const botaoAcessibilidade = [...document.querySelectorAll('button')].find(b => /acessibilidade/i.test(b.textContent || ''));
+
+    if (botaoAudio && botaoAudio.dataset.fwControl !== '1') {
+      botaoAudio.dataset.fwControl = '1';
+      let ativo = false;
+      botaoAudio.setAttribute('aria-pressed', 'false');
+      botaoAudio.addEventListener('click', () => {
+        ativo = !ativo;
+        botaoAudio.setAttribute('aria-pressed', ativo ? 'true' : 'false');
+        botaoAudio.innerHTML = ativo ? '🔊 Áudio ligado' : '🔇 Áudio desligado';
+        if (ativo) {
+          if (!falarConfirmacao('Áudio ativado. Os recursos de leitura estão disponíveis.')) {
+            botaoAudio.title = 'Síntese de voz não disponível neste navegador.';
+          }
+        } else if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
+      });
+    }
+
+    if (botaoAcessibilidade && painelAcessibilidade && botaoAcessibilidade.dataset.fwControl !== '1') {
+      botaoAcessibilidade.dataset.fwControl = '1';
+      botaoAcessibilidade.addEventListener('click', (evento) => {
+        evento.preventDefault();
+        mostrar(painelAcessibilidade);
+        painelAcessibilidade.open = true;
+        painelAcessibilidade.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        window.setTimeout(() => painelAcessibilidade.querySelector('summary')?.focus(), 350);
+      });
+    }
+  }
+
   function esconderConteudoCatalogo(artigo) {
     artigo.querySelectorAll('form,.actions,.table-wrap,.accessible-report-controls,.async-status').forEach(ocultar);
     if (!artigo.querySelector('.open-experiment')) {
@@ -201,7 +258,11 @@
     document.body.classList.add('experiment-focus-mode');
     ocultar(document.getElementById('ambientes'));
     ocultar(document.getElementById('contexto'));
-    document.getElementById('acessibilidade')?.classList.add('focus-accessibility');
+    const painelAcessibilidade = document.getElementById('acessibilidade');
+    if (painelAcessibilidade) {
+      painelAcessibilidade.classList.add('focus-accessibility');
+      mostrar(painelAcessibilidade);
+    }
 
     artigos.forEach((artigo) => {
       if (artigo.dataset.experiment !== chave) ocultar(artigo);
@@ -248,7 +309,7 @@
     .catalog-mode .experiment>form,.catalog-mode .experiment>.actions,.catalog-mode .experiment>.table-wrap,.catalog-mode .experiment>.accessible-report-controls{display:none!important}
     .experiment-focus-mode #inicio,.experiment-focus-mode #coleta{display:none!important}
     .experiment-focus-mode #ambientes,.experiment-focus-mode #contexto{display:none!important}
-    .experiment-focus-mode .focus-accessibility{display:none}
+    .experiment-focus-mode .focus-accessibility{display:block!important;margin:16px auto;max-width:820px}
     .experiment-focus-mode #experimentos>.section-title{display:none}
     .experiment-focus-mode .experiments{display:block}
     .experiment-focus-mode .experiment-active{max-width:820px;margin:0 auto;border:0;box-shadow:none;padding:8px 0}
@@ -264,6 +325,9 @@
     @media(max-width:600px){.experiment-focus-mode #experimentos{padding:14px}.experiment-focus-mode .experiment-active{padding:0}.focus-toolbar{align-items:flex-start;flex-direction:column}.catalog-mode .experiment{min-height:160px}}
   `;
   document.head.appendChild(style);
+
+  configurarControlesGlobais();
+  if ('speechSynthesis' in window) window.speechSynthesis.onvoiceschanged = escolherVozPtBR;
 
   if (foco && validos.has(foco)) modoFocado(foco);
   else modoCatalogo();
