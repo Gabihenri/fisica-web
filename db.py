@@ -147,11 +147,16 @@ def obter_ou_criar_turma(escola_id: str, ano_letivo: int, serie_ano: str, turma:
     return _primeiro(client.table("turmas").insert(payload).execute().data) or payload
 
 
-def obter_ou_criar_grupo(turma_id: str, codigo_grupo: str, professor_responsavel: str = "", quantidade_participantes: int = 0, data_experimento: Optional[str] = None) -> Dict[str, Any]:
-    client = get_supabase_client(); codigo_grupo = _texto(codigo_grupo) or "Grupo 1"; data_experimento = data_experimento or date.today().isoformat()
-    existente = _primeiro(client.table("grupos_experimentais").select("*").eq("turma_id", turma_id).eq("codigo_grupo", codigo_grupo).eq("data_experimento", data_experimento).limit(1).execute().data)
+def obter_ou_criar_grupo(turma_id: str, codigo_grupo: str, professor_responsavel: str = "", quantidade_participantes: int = 0, data_experimento: Optional[str] = None, owner_user_id: str = "") -> Dict[str, Any]:
+    client = get_supabase_client(); codigo_grupo = _texto(codigo_grupo) or "Grupo 1"; data_experimento = data_experimento or date.today().isoformat(); owner_user_id = _texto(owner_user_id)
+    consulta = client.table("grupos_experimentais").select("*").eq("turma_id", turma_id).eq("codigo_grupo", codigo_grupo).eq("data_experimento", data_experimento)
+    if owner_user_id:
+        consulta = consulta.eq("owner_user_id", owner_user_id)
+    else:
+        consulta = consulta.is_("owner_user_id", "null")
+    existente = _primeiro(consulta.limit(1).execute().data)
     if existente: return existente
-    payload = {"turma_id": turma_id, "codigo_grupo": codigo_grupo, "data_experimento": data_experimento, "professor_responsavel": _texto(professor_responsavel) or None, "quantidade_participantes": max(int(quantidade_participantes or 0), 0)}
+    payload = {"turma_id": turma_id, "codigo_grupo": codigo_grupo, "data_experimento": data_experimento, "professor_responsavel": _texto(professor_responsavel) or None, "quantidade_participantes": max(int(quantidade_participantes or 0), 0), "owner_user_id": owner_user_id or None}
     return _primeiro(client.table("grupos_experimentais").insert(payload).execute().data) or payload
 
 
@@ -167,11 +172,13 @@ def salvar_participantes(grupo_id: str, nomes: List[str]) -> List[Dict[str, Any]
 
 
 def cadastrar_contexto_escolar(payload: Dict[str, Any]) -> Dict[str, Any]:
+    user_id = _usuario_sessao_id()
+    if has_request_context() and not user_id:
+        raise PermissionError("Faça login antes de criar um grupo.")
     nomes=payload.get("nomes") or []; escola=obter_ou_criar_escola(payload.get("escola",""),payload.get("rede",""),payload.get("municipio",""),payload.get("estado",""))
     turma=obter_ou_criar_turma(escola["id"],int(payload.get("ano_letivo") or date.today().year),payload.get("serie",""),payload.get("turma",""),payload.get("turno",""),payload.get("componente_curricular","Física"),payload.get("professor_responsavel",""))
-    grupo=obter_ou_criar_grupo(turma["id"],payload.get("codigo_grupo","Grupo 1"),payload.get("professor_responsavel",""),len([n for n in nomes if _texto(n)]))
+    grupo=obter_ou_criar_grupo(turma["id"],payload.get("codigo_grupo","Grupo 1"),payload.get("professor_responsavel",""),len([n for n in nomes if _texto(n)]),owner_user_id=user_id)
     participantes=salvar_participantes(grupo["id"],nomes)
-    user_id = _usuario_sessao_id()
     if user_id:
         _vincular_usuario_contexto(user_id, escola["id"], turma["id"], grupo["id"], "professor")
     return {"escola":escola,"turma":turma,"grupo":grupo,"participantes":participantes}
