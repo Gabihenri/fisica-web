@@ -4,7 +4,7 @@ from flask import jsonify, redirect, render_template, request, session
 from supabase import create_client
 
 from app_core import app
-from db import registrar_perfil_usuario
+from db import listar_grupos_usuario, registrar_perfil_usuario
 
 
 app.secret_key = os.getenv("FLASK_SECRET_KEY") or os.getenv("SECRET_KEY") or os.urandom(32)
@@ -63,7 +63,7 @@ def api_acesso_login():
         user = _salvar_sessao_auth(resposta)
         if not user or not session.get("user_id"):
             return jsonify({"erro": "Não foi possível criar a sessão."}), 401
-        return jsonify({"ok": True, "destino": "/"})
+        return jsonify({"ok": True, "destino": "/meus-grupos"})
     except Exception:
         return jsonify({"erro": "E-mail ou senha inválidos."}), 401
 
@@ -82,8 +82,6 @@ def api_acesso_cadastro():
 
     cliente = _auth_client()
     try:
-        # Fluxo preferencial no servidor: cria a conta já confirmada quando a chave
-        # configurada no Render possui permissão administrativa.
         criado = cliente.auth.admin.create_user({
             "email": email,
             "password": senha,
@@ -95,12 +93,11 @@ def api_acesso_cadastro():
             registrar_perfil_usuario(str(user.id), nome, papel)
         resposta = _auth_client().auth.sign_in_with_password({"email": email, "password": senha})
         _salvar_sessao_auth(resposta)
-        return jsonify({"ok": True, "destino": "/", "mensagem": "Cadastro criado. Você já pode entrar no Física Web."})
+        return jsonify({"ok": True, "destino": "/meus-grupos", "mensagem": "Cadastro criado. Você já pode usar o Física Web."})
     except Exception as admin_exc:
         mensagem_admin = str(admin_exc).lower()
         if "already" in mensagem_admin or "registered" in mensagem_admin or "exists" in mensagem_admin:
             return jsonify({"erro": "Este e-mail já possui cadastro."}), 409
-
         try:
             resposta = _auth_client().auth.sign_up({
                 "email": email,
@@ -111,7 +108,7 @@ def api_acesso_cadastro():
             if user:
                 registrar_perfil_usuario(str(user.id), nome, papel)
             if session.get("user_id"):
-                return jsonify({"ok": True, "destino": "/", "mensagem": "Cadastro criado. Você já pode usar o Física Web."})
+                return jsonify({"ok": True, "destino": "/meus-grupos", "mensagem": "Cadastro criado. Você já pode usar o Física Web."})
             return jsonify({"ok": True, "mensagem": "Cadastro criado. Confirme o e-mail apenas se o Supabase solicitar e depois entre normalmente."})
         except Exception as exc:
             mensagem = str(exc).lower()
@@ -139,6 +136,12 @@ def api_acesso_logout():
 def sair():
     session.clear()
     return redirect("/acesso")
+
+
+@app.route("/meus-grupos")
+def meus_grupos():
+    grupos = listar_grupos_usuario(session.get("user_id", ""))
+    return render_template("meus_grupos.html", grupos=grupos, email=session.get("user_email", ""))
 
 
 @app.route("/laboratorio-movel")
