@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Acesso | Física Web</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#172033;background:#f5f7fb}
+    *{box-sizing:border-box} body{margin:0} main{max-width:960px;margin:auto;padding:28px 18px 56px}
+    .brand{font-weight:800;color:#173f77}.hero{margin:28px 0}.hero h1{font-size:clamp(2rem,7vw,3.5rem);line-height:1;margin:.3rem 0}.hero p{max-width:680px;color:#536078;line-height:1.6}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}.card{background:white;border:1px solid #dce3ef;border-radius:20px;padding:22px;box-shadow:0 8px 30px #1720330d}
+    h2{margin-top:0} label{display:block;font-weight:700;margin:14px 0 6px} input,select{width:100%;padding:12px;border:1px solid #b9c5d8;border-radius:10px;font:inherit;background:white}
+    button{width:100%;margin-top:18px;padding:13px;border:0;border-radius:10px;background:#173f77;color:white;font-weight:800;font-size:1rem;cursor:pointer}.secondary{background:#eef3fa;color:#173f77}
+    .note{font-size:.9rem;color:#657087;line-height:1.5}.status{min-height:24px;margin-top:12px;font-weight:700}.ok{color:#176b42}.err{color:#a52626}
+    .security{margin-top:20px;padding:16px;border-radius:14px;background:#edf6ff;color:#23476f;line-height:1.5}.hidden{display:none}
+  </style>
+</head>
+<body>
+<main>
+  <div class="brand">FÍSICA WEB · ACESSO SEGURO</div>
+  <section class="hero">
+    <h1>Entrar no laboratório</h1>
+    <p>O acesso identifica o usuário antes de liberar instituições, turmas, grupos e dados experimentais. Cada conta visualiza somente os espaços aos quais está autorizada.</p>
+  </section>
+
+  <div class="grid">
+    <section class="card" aria-labelledby="entrar-title">
+      <h2 id="entrar-title">Já tenho acesso</h2>
+      <form id="loginForm">
+        <label for="loginEmail">E-mail</label><input id="loginEmail" type="email" autocomplete="email" required>
+        <label for="loginSenha">Senha</label><input id="loginSenha" type="password" autocomplete="current-password" minlength="8" required>
+        <button type="submit">Entrar</button>
+      </form>
+      <div id="loginStatus" class="status" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="card" aria-labelledby="cad-title">
+      <h2 id="cad-title">Solicitar cadastro</h2>
+      <p class="note">Nesta primeira fase, o cadastro cria a identidade de acesso. A liberação da instituição, turma ou grupo será controlada separadamente.</p>
+      <form id="cadastroForm">
+        <label for="nome">Nome</label><input id="nome" autocomplete="name" required maxlength="120">
+        <label for="email">E-mail</label><input id="email" type="email" autocomplete="email" required>
+        <label for="papel">Perfil</label>
+        <select id="papel" required><option value="professor">Professor</option><option value="estudante">Estudante</option></select>
+        <label for="senha">Senha</label><input id="senha" type="password" autocomplete="new-password" minlength="8" required>
+        <button type="submit">Criar acesso</button>
+      </form>
+      <div id="cadastroStatus" class="status" role="status" aria-live="polite"></div>
+    </section>
+  </div>
+
+  <div class="security"><strong>Proteção dos dados:</strong> o login não concede acesso automático a outras instituições, turmas ou grupos. A autorização é validada no banco de dados antes da leitura ou alteração dos registros experimentais.</div>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+async function postJSON(url,payload){
+  const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  let data={}; try{data=await r.json()}catch(_){data={erro:'Resposta inválida do servidor.'}}
+  if(!r.ok) throw new Error(data.erro||'Não foi possível concluir a operação.'); return data;
+}
+$('loginForm').addEventListener('submit',async e=>{e.preventDefault();const s=$('loginStatus');s.className='status';s.textContent='Entrando…';try{const d=await postJSON('/api/acesso/login',{email:$('loginEmail').value,senha:$('loginSenha').value});s.className='status ok';s.textContent='Acesso autorizado.';location.href=d.destino||'/';}catch(err){s.className='status err';s.textContent=err.message;}});
+$('cadastroForm').addEventListener('submit',async e=>{e.preventDefault();const s=$('cadastroStatus');s.className='status';s.textContent='Criando acesso…';try{const d=await postJSON('/api/acesso/cadastro',{nome:$('nome').value,email:$('email').value,papel:$('papel').value,senha:$('senha').value});s.className='status ok';s.textContent=d.mensagem||'Cadastro criado. Verifique seu e-mail se a confirmação estiver habilitada.';e.target.reset();}catch(err){s.className='status err';s.textContent=err.message;}});
+</script>
+</body>
+</html>
