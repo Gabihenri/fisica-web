@@ -4,9 +4,10 @@ from flask import jsonify, redirect, render_template, request, session
 from supabase import create_client
 
 from app_core import app
+from db import registrar_perfil_usuario
 
 
-app.secret_key = os.getenv("FLASK_SECRET_KEY") or os.getenv("SECRET_KEY") or "fisica-web-dev-change-me"
+app.secret_key = os.getenv("FLASK_SECRET_KEY") or os.getenv("SECRET_KEY") or os.urandom(32)
 
 
 def _auth_client():
@@ -26,6 +27,28 @@ def _salvar_sessao_auth(auth_response):
     if user:
         session["user_id"] = str(getattr(user, "id", "") or "")
         session["user_email"] = getattr(user, "email", "") or ""
+    return user
+
+
+@app.before_request
+def exigir_login():
+    caminho = request.path
+    if caminho.startswith("/static/"):
+        return None
+    publicos = {
+        "/acesso",
+        "/api/acesso/login",
+        "/api/acesso/cadastro",
+        "/api/acesso/status",
+        "/api/health/supabase",
+    }
+    if caminho in publicos:
+        return None
+    if not session.get("user_id"):
+        if caminho.startswith("/api/"):
+            return jsonify({"erro": "Autenticação necessária.", "destino": "/acesso"}), 401
+        return redirect("/acesso")
+    return None
 
 
 @app.route("/api/acesso/login", methods=["POST"])
@@ -37,10 +60,12 @@ def api_acesso_login():
         return jsonify({"erro": "Informe e-mail e senha."}), 400
     try:
         resposta = _auth_client().auth.sign_in_with_password({"email": email, "password": senha})
-        _salvar_sessao_auth(resposta)
+        user = _salvar_sessao_auth(resposta)
+        if not user or not session.get("user_id"):
+            return jsonify({"erro": "Não foi possível criar a sessão."}), 401
         return jsonify({"ok": True, "destino": "/"})
     except Exception:
-        return jsonify({"erro": "E-mail ou senha inválidos, ou acesso ainda não confirmado."}), 401
+        return jsonify({"erro": "E-mail ou senha inválidos."}), 401
 
 
 @app.route("/api/acesso/cadastro", methods=["POST"])
@@ -54,64 +79,45 @@ def api_acesso_cadastro():
         papel = "professor"
     if not nome or not email or len(senha) < 8:
         return jsonify({"erro": "Informe nome, e-mail e uma senha com pelo menos 8 caracteres."}), 400
+
+    cliente = _auth_client()
     try:
-        resposta = _auth_client().auth.sign_up({
+        # Fluxo preferencial no servidor: cria a conta já confirmada quando a chave
+        # configurada no Render possui permissão administrativa.
+        criado = cliente.auth.admin.create_user({
             "email": email,
             "password": senha,
-            "options": {"data": {"nome": nome, "papel_solicitado": papel}},
+            "email_confirm": True,
+            "user_metadata": {"nome": nome, "papel_solicitado": papel},
         })
+        user = getattr(criado, "user", None)
+        if user:
+            registrar_perfil_usuario(str(user.id), nome, papel)
+        resposta = _auth_client().auth.sign_in_with_password({"email": email, "password": senha})
         _salvar_sessao_auth(resposta)
-        return jsonify({
-            "ok": True,
-            "mensagem": "Cadastro criado. Se a confirmação por e-mail estiver habilitada, confirme o endereço antes de entrar. O vínculo com instituição, turma e grupo será liberado separadamente.",
-        })
-    except Exception as exc:
-        mensagem = str(exc).lower()
-        if "already" in mensagem or "registered" in mensagem or "exists" in mensagem:
+        return jsonify({"ok": True, "destino": "/", "mensagem": "Cadastro criado. Você já pode entrar no Física Web."})
+    except Exception as admin_exc:
+        mensagem_admin = str(admin_exc).lower()
+        if "already" in mensagem_admin or "registered" in mensagem_admin or "exists" in mensagem_admin:
             return jsonify({"erro": "Este e-mail já possui cadastro."}), 409
-        return jsonify({"erro": "Não foi possível criar o cadastro agora."}), 400
 
-
-@app.route("/api/acesso/google")
-def api_acesso_google():
-    try:
-        origem = request.url_root.rstrip("/")
-        callback = f"{origem}/auth/callback"
-        resposta = _auth_client().auth.sign_in_with_oauth({
-            "provider": "google",
-            "options": {"redirect_to": callback},
-        })
-        url = getattr(resposta, "url", None)
-        if not url and isinstance(resposta, dict):
-            url = resposta.get("url")
-        if not url:
-            return redirect("/acesso?erro=google_nao_habilitado")
-        return redirect(url)
-    except Exception as exc:
-        mensagem = str(exc).lower()
-        if "provider" in mensagem and ("enabled" in mensagem or "unsupported" in mensagem):
-            return redirect("/acesso?erro=google_nao_habilitado")
-        return redirect("/acesso?erro=google_indisponivel")
-
-
-@app.route("/auth/callback")
-def auth_callback():
-    erro = request.args.get("error_description") or request.args.get("error")
-    if erro:
-        return redirect("/acesso?erro=google_cancelado")
-
-    codigo = request.args.get("code", "").strip()
-    if not codigo:
-        return redirect("/acesso?erro=callback_invalido")
-
-    try:
-        resposta = _auth_client().auth.exchange_code_for_session({"auth_code": codigo})
-        _salvar_sessao_auth(resposta)
-        if not session.get("user_id"):
-            return redirect("/acesso?erro=sessao_nao_criada")
-        return redirect("/")
-    except Exception:
-        return redirect("/acesso?erro=troca_codigo")
+        try:
+            resposta = _auth_client().auth.sign_up({
+                "email": email,
+                "password": senha,
+                "options": {"data": {"nome": nome, "papel_solicitado": papel}},
+            })
+            user = _salvar_sessao_auth(resposta)
+            if user:
+                registrar_perfil_usuario(str(user.id), nome, papel)
+            if session.get("user_id"):
+                return jsonify({"ok": True, "destino": "/", "mensagem": "Cadastro criado. Você já pode usar o Física Web."})
+            return jsonify({"ok": True, "mensagem": "Cadastro criado. Confirme o e-mail apenas se o Supabase solicitar e depois entre normalmente."})
+        except Exception as exc:
+            mensagem = str(exc).lower()
+            if "already" in mensagem or "registered" in mensagem or "exists" in mensagem:
+                return jsonify({"erro": "Este e-mail já possui cadastro."}), 409
+            return jsonify({"erro": "Não foi possível criar o cadastro agora."}), 400
 
 
 @app.route("/api/acesso/status")
@@ -120,18 +126,19 @@ def api_acesso_status():
         "autenticado": bool(session.get("user_id")),
         "email": session.get("user_email", ""),
         "rota_acesso": "/acesso",
-        "google_callback": "/auth/callback",
     })
 
 
 @app.route("/api/acesso/logout", methods=["POST"])
 def api_acesso_logout():
-    try:
-        _auth_client().auth.sign_out()
-    except Exception:
-        pass
     session.clear()
     return jsonify({"ok": True, "destino": "/acesso"})
+
+
+@app.route("/sair", methods=["POST"])
+def sair():
+    session.clear()
+    return redirect("/acesso")
 
 
 @app.route("/laboratorio-movel")
