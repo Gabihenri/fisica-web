@@ -26,7 +26,6 @@
     .status.ok{background:#eefaf3;color:var(--ok);border:1px solid #b8dfc7}
     .nav{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:16px}
     .nav a{color:#fff;text-decoration:none;font-weight:700}
-    .required{color:#9f1d2e}
     @media(max-width:620px){main{margin:18px auto;padding:10px}.card{padding:22px}.grid{grid-template-columns:1fr}.actions>*{width:100%}.nav{align-items:flex-start;flex-direction:column}}
   </style>
 </head>
@@ -35,7 +34,7 @@
   <div class="nav"><a href="/ambiente">← Criar ambiente</a><a href="/meus-grupos">Meus grupos</a></div>
   <section class="card" aria-labelledby="titulo">
     <h1 id="titulo">Cadastrar escola e turma</h1>
-    <p class="intro">Cadastre o contexto escolar uma vez. Depois disso, a turma aparecerá automaticamente na tela de criação de ambientes experimentais.</p>
+    <p class="intro">Cadastre o contexto escolar quando quiser. Os dados podem ser preenchidos aos poucos; nenhum campo desta tela é obrigatório.</p>
 
     {% if erro %}<div class="status error" role="alert">{{ erro }}</div>{% endif %}
     {% if mensagem %}<div class="status ok" role="status">{{ mensagem }}</div>{% endif %}
@@ -45,8 +44,8 @@
 
       <div class="grid">
         <div class="field">
-          <label for="escola">Escola <span class="required" aria-hidden="true">*</span></label>
-          <input id="escola" name="escola" type="text" required maxlength="180" placeholder="Nome da escola" autocomplete="organization">
+          <label for="escola">Escola</label>
+          <input id="escola" name="escola" type="text" maxlength="180" placeholder="Nome da escola" autocomplete="organization">
         </div>
         <div class="field">
           <label for="rede">Rede de ensino</label>
@@ -61,16 +60,16 @@
           <input id="estado" name="estado" type="text" maxlength="2" placeholder="SP" autocomplete="address-level1" style="text-transform:uppercase">
         </div>
         <div class="field">
-          <label for="ano_letivo">Ano letivo <span class="required" aria-hidden="true">*</span></label>
-          <input id="ano_letivo" name="ano_letivo" type="number" required min="2024" max="2100" value="2026">
+          <label for="ano_letivo">Ano letivo</label>
+          <input id="ano_letivo" name="ano_letivo" type="number" min="2024" max="2100" value="2026">
         </div>
         <div class="field">
-          <label for="serie">Série/ano <span class="required" aria-hidden="true">*</span></label>
-          <input id="serie" name="serie" type="text" required maxlength="60" placeholder="Ex.: 1ª série do Ensino Médio">
+          <label for="serie">Série/ano</label>
+          <input id="serie" name="serie" type="text" maxlength="60" placeholder="Ex.: 1ª série do Ensino Médio">
         </div>
         <div class="field">
-          <label for="turma">Turma <span class="required" aria-hidden="true">*</span></label>
-          <input id="turma" name="turma" type="text" required maxlength="30" placeholder="Ex.: A">
+          <label for="turma">Turma</label>
+          <input id="turma" name="turma" type="text" maxlength="30" placeholder="Ex.: A">
         </div>
         <div class="field">
           <label for="turno">Turno</label>
@@ -88,7 +87,7 @@
         </div>
       </div>
 
-      <p class="help">Os campos marcados com * são obrigatórios. Se a escola já existir no cadastro, o sistema reutilizará o registro em vez de duplicá-lo.</p>
+      <p class="help">Todos os campos são opcionais. Quando alguma informação não for preenchida, o sistema usará um valor neutro apenas para conseguir criar o contexto técnico no banco. Você poderá complementar os dados depois.</p>
 
       <div class="actions">
         <button type="submit">Salvar escola e turma</button>
