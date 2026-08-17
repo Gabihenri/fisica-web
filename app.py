@@ -52,6 +52,8 @@ def ambiente():
         except (LookupError,PermissionError,ValueError) as e: erro=str(e)
         except Exception: erro="Não foi possível concluir a operação. Verifique os dados e tente novamente."
     return render_template("ambiente.html",turmas=listar_turmas_para_ambiente(uid),mensagem=mensagem,erro=erro,criado=criado)
+@app.route("/configuracao-experimental")
+def configuracao_experimental(): return render_template("configuracao_experimental.html")
 @app.route("/laboratorio-movel")
 def laboratorio_movel():return render_template("laboratorio_movel.html")
 @app.route("/laboratorio-sensores")
