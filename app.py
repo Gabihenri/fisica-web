@@ -89,6 +89,7 @@ def inject_accessibility_layers(response):
         markers = (
             '<script src="/static/accessibility-voice.js" defer></script>',
             '<script src="/static/accessibility-science.js" defer></script>',
+            '<script src="/static/experiment-illustrations.js" defer></script>',
         )
         for marker in markers:
             if marker not in body and "</body>" in body:
