@@ -9,7 +9,7 @@ from supabase import create_client
 
 from app_core import app
 from ambientes import criar_ambiente_compartilhado, entrar_ambiente_por_codigo, listar_turmas_para_ambiente
-from db import listar_grupos_usuario, registrar_perfil_usuario
+from db import cadastrar_contexto_escolar, listar_grupos_usuario, registrar_perfil_usuario
 from security import current_role
 
 SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "").strip()
@@ -169,6 +169,35 @@ def erro_500(exc):
 @app.route("/meus-grupos")
 def meus_grupos():
     return render_template("meus_grupos.html", grupos=listar_grupos_usuario(session.get("user_id", "")), email=session.get("user_email", ""), papel=current_role())
+
+
+@app.route("/cadastro-escolar", methods=["GET", "POST"])
+def cadastro_escolar():
+    mensagem = ""
+    erro = ""
+    if request.method == "POST":
+        try:
+            resultado = cadastrar_contexto_escolar({
+                "escola": request.form.get("escola", ""),
+                "rede": request.form.get("rede", ""),
+                "municipio": request.form.get("municipio", ""),
+                "estado": request.form.get("estado", ""),
+                "ano_letivo": request.form.get("ano_letivo", ""),
+                "serie": request.form.get("serie", ""),
+                "turma": request.form.get("turma", ""),
+                "turno": request.form.get("turno", ""),
+                "componente_curricular": request.form.get("componente_curricular", "Física"),
+                "professor_responsavel": session.get("user_email", ""),
+            })
+            turma = resultado.get("turma") or {}
+            escola = resultado.get("escola") or {}
+            mensagem = f"Turma {turma.get('serie_ano', '')} — {turma.get('turma', '')} cadastrada com sucesso em {escola.get('nome', 'sua escola')}. Ela já está disponível para criar ambientes experimentais."
+        except (LookupError, PermissionError, ValueError) as exc:
+            erro = str(exc)
+        except Exception:
+            logger.exception("Falha ao cadastrar contexto escolar")
+            erro = "Não foi possível salvar a escola e a turma. Verifique os dados e tente novamente."
+    return render_template("cadastro_escolar.html", mensagem=mensagem, erro=erro, email=session.get("user_email", ""))
 
 
 @app.route("/ambiente", methods=["GET", "POST"])
