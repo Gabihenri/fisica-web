@@ -76,8 +76,8 @@ def security_guard():
         return render_template("403.html"), 403
 
     # Alunos podem trabalhar no grupo e registrar medições, mas não podem
-    # apagar o grupo inteiro nem limpar o histórico compartilhado.
-    if request.method == "POST" and (path == "/excluir-grupo" or path.startswith("/limpar-")):
+    # criar grupos por rotas legadas nem apagar o grupo inteiro ou limpar o histórico.
+    if request.method == "POST" and (path == "/salvar-grupo" or path == "/excluir-grupo" or path.startswith("/limpar-")):
         if current_role() not in {"professor", "admin_instituicao", "admin_plataforma"}:
             return render_template("403.html"), 403
 
