@@ -5,6 +5,7 @@ from supabase import create_client
 
 from app_core import app
 from db import listar_grupos_usuario, registrar_perfil_usuario
+from ambientes import criar_ambiente_compartilhado, entrar_ambiente_por_codigo, listar_turmas_para_ambiente
 
 
 app.secret_key = os.getenv("FLASK_SECRET_KEY") or os.getenv("SECRET_KEY") or os.urandom(32)
@@ -142,6 +143,40 @@ def sair():
 def meus_grupos():
     grupos = listar_grupos_usuario(session.get("user_id", ""))
     return render_template("meus_grupos.html", grupos=grupos, email=session.get("user_email", ""))
+
+
+@app.route("/ambiente", methods=["GET", "POST"])
+def ambiente():
+    user_id = session.get("user_id", "")
+    mensagem = ""
+    erro = ""
+    criado = None
+    if request.method == "POST":
+        acao = request.form.get("acao", "").strip().lower()
+        try:
+            if acao == "criar":
+                criado = criar_ambiente_compartilhado(
+                    user_id=user_id,
+                    titulo=request.form.get("titulo", ""),
+                    experimento=request.form.get("experimento", ""),
+                    turma_id=request.form.get("turma_id", ""),
+                    professor_responsavel=session.get("user_email", ""),
+                )
+                mensagem = f"Ambiente criado. Código: {criado['codigo']}"
+            elif acao == "entrar":
+                resultado = entrar_ambiente_por_codigo(user_id, request.form.get("codigo", ""))
+                grupo_id = resultado["grupo"]["id"]
+                return redirect(f"/?grupo_id={grupo_id}#contexto")
+            else:
+                erro = "Escolha criar ou entrar em um ambiente."
+        except LookupError as exc:
+            erro = str(exc)
+        except (PermissionError, ValueError) as exc:
+            erro = str(exc)
+        except Exception:
+            erro = "Não foi possível concluir a operação. Verifique os dados e tente novamente."
+    turmas = listar_turmas_para_ambiente(user_id)
+    return render_template("ambiente.html", turmas=turmas, mensagem=mensagem, erro=erro, criado=criado)
 
 
 @app.route("/laboratorio-movel")
