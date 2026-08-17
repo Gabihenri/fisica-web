@@ -15,7 +15,7 @@
     'Movimento Circular': ['circular.svg', 'Esquema de movimento circular, mostrando o raio e a aceleração centrípeta.'],
     'Som': ['som.svg', 'Representação de uma onda sonora periódica, relacionada à frequência e ao período.'],
     'Elevador': ['elevador.svg', 'Esquema de uma cabine de elevador com forças verticais e aceleração.'],
-    'Sensores': ['sensores.svg', 'Esquema de um módulo de aquisição de dados com sensores e conexões analógicas e digitais.'],
+    'Sensores': ['sensores.svg', 'Esquema de um smartphone apoiado, com os eixos X, Y e Z do acelerômetro e o vetor da gravidade.'],
     'Laboratório Móvel': ['movel.svg', 'Esquema do laboratório móvel usando sensores integrados ao dispositivo.']
   };
 
@@ -83,7 +83,8 @@
   }
 
   function enhanceLaboratoryPage() {
-    const title = PATHS[window.location.pathname];
+    const path = window.location.pathname;
+    const title = path.startsWith('/laboratorio-sensores') ? 'Sensores' : PATHS[path];
     if (!title) return;
 
     const heading = [...document.querySelectorAll('h1,h2,h3')].find(h => normalize(h.textContent) === title);
