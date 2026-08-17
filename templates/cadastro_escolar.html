@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Escola e turma — Física Web</title>
+  <title>Contexto escolar — Física Web</title>
   <style>
     :root{--azul:#0b2f63;--azul2:#1479e8;--borda:#d9e2ef;--texto:#17324d;--suave:#f5f8fc;--erro:#9f1d2e;--ok:#176b3a}
     *{box-sizing:border-box}
@@ -26,6 +26,7 @@
     .status.ok{background:#eefaf3;color:var(--ok);border:1px solid #b8dfc7}
     .nav{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:16px}
     .nav a{color:#fff;text-decoration:none;font-weight:700}
+    .required{color:var(--erro);font-weight:900}
     @media(max-width:620px){main{margin:18px auto;padding:10px}.card{padding:22px}.grid{grid-template-columns:1fr}.actions>*{width:100%}.nav{align-items:flex-start;flex-direction:column}}
   </style>
 </head>
@@ -33,19 +34,19 @@
 <main>
   <div class="nav"><a href="/ambiente">← Criar ambiente</a><a href="/meus-grupos">Meus grupos</a></div>
   <section class="card" aria-labelledby="titulo">
-    <h1 id="titulo">Cadastrar escola e turma</h1>
-    <p class="intro">Cadastre o contexto escolar quando quiser. Os dados podem ser preenchidos aos poucos; nenhum campo desta tela é obrigatório.</p>
+    <h1 id="titulo">Contexto escolar</h1>
+    <p class="intro">Cadastre ou atualize o contexto escolar uma única vez. O contexto fica vinculado ao seu perfil e será reutilizado nos próximos grupos. <strong>O cadastro não cria um grupo automaticamente.</strong></p>
 
     {% if erro %}<div class="status error" role="alert">{{ erro }}</div>{% endif %}
-    {% if mensagem %}<div class="status ok" role="status">{{ mensagem }}</div>{% endif %}
+    {% if mensagem %}<div class="status ok" role="status">{{ mensagem }}<div class="actions"><a class="button" href="/ambiente">Criar grupo experimental</a></div></div>{% endif %}
 
-    <form method="post" action="/cadastro-escolar" novalidate>
+    <form method="post" action="/cadastro-escolar">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
       <div class="grid">
         <div class="field">
-          <label for="escola">Escola</label>
-          <input id="escola" name="escola" type="text" maxlength="180" placeholder="Nome da escola" autocomplete="organization">
+          <label for="escola">Escola <span class="required" aria-hidden="true">*</span></label>
+          <input id="escola" name="escola" type="text" maxlength="180" placeholder="Nome da escola" autocomplete="organization" required>
         </div>
         <div class="field">
           <label for="rede">Rede de ensino</label>
@@ -60,16 +61,16 @@
           <input id="estado" name="estado" type="text" maxlength="2" placeholder="SP" autocomplete="address-level1" style="text-transform:uppercase">
         </div>
         <div class="field">
-          <label for="ano_letivo">Ano letivo</label>
-          <input id="ano_letivo" name="ano_letivo" type="number" min="2024" max="2100" value="2026">
+          <label for="ano_letivo">Ano letivo <span class="required" aria-hidden="true">*</span></label>
+          <input id="ano_letivo" name="ano_letivo" type="number" min="2024" max="2100" value="2026" required>
         </div>
         <div class="field">
-          <label for="serie">Série/ano</label>
-          <input id="serie" name="serie" type="text" maxlength="60" placeholder="Ex.: 1ª série do Ensino Médio">
+          <label for="serie">Série/ano <span class="required" aria-hidden="true">*</span></label>
+          <input id="serie" name="serie" type="text" maxlength="60" placeholder="Ex.: 1ª série do Ensino Médio" required>
         </div>
         <div class="field">
-          <label for="turma">Turma</label>
-          <input id="turma" name="turma" type="text" maxlength="30" placeholder="Ex.: A">
+          <label for="turma">Turma <span class="required" aria-hidden="true">*</span></label>
+          <input id="turma" name="turma" type="text" maxlength="30" placeholder="Ex.: A" required>
         </div>
         <div class="field">
           <label for="turno">Turno</label>
@@ -87,10 +88,10 @@
         </div>
       </div>
 
-      <p class="help">Todos os campos são opcionais. Quando alguma informação não for preenchida, o sistema usará um valor neutro apenas para conseguir criar o contexto técnico no banco. Você poderá complementar os dados depois.</p>
+      <p class="help">Os campos marcados com * são necessários para identificar a turma. Se a escola ou turma já estiver cadastrada, o sistema reutiliza o registro e apenas vincula o contexto ao seu perfil.</p>
 
       <div class="actions">
-        <button type="submit">Salvar escola e turma</button>
+        <button type="submit">Salvar contexto escolar</button>
         <a class="button secondary" href="/ambiente">Cancelar</a>
       </div>
     </form>
