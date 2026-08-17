@@ -9,7 +9,8 @@ from supabase import create_client
 
 from app_core import app
 from ambientes import criar_ambiente_compartilhado, entrar_ambiente_por_codigo, listar_turmas_para_ambiente
-from db import cadastrar_contexto_escolar, listar_grupos_usuario, obter_contexto_grupo, registrar_perfil_usuario
+from cadastro_contexto import cadastrar_somente_contexto_escolar
+from db import cadastrar_contexto_escolar, listar_grupos_usuario, obter_contexto_grupo, registrar_perfil_usuario, usuario_tem_acesso_grupo
 from security import current_role
 
 SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "").strip()
@@ -45,6 +46,10 @@ def _csrf_token():
     return token
 
 
+def _grupo_id_requisicao():
+    return (request.args.get("grupo_id") or request.form.get("grupo_id") or "").strip()
+
+
 @app.context_processor
 def inject_security_helpers(): return {"csrf_token": _csrf_token, "current_role": current_role}
 
@@ -60,6 +65,21 @@ def security_guard():
         supplied = request.form.get("csrf_token") or request.headers.get("X-CSRF-Token"); expected = session.get("csrf_token")
         if not supplied or not expected or not secrets.compare_digest(str(supplied), str(expected)):
             logger.warning("CSRF rejeitado: path=%s user=%s", path, session.get("user_id")); return jsonify({"erro": "Solicitação inválida. Atualize a página e tente novamente."}), 400
+
+    # Regra central de compartilhamento: qualquer dado identificado por grupo
+    # só pode ser acessado por um membro ativo daquele grupo.
+    grupo_id = _grupo_id_requisicao()
+    if grupo_id and not usuario_tem_acesso_grupo(session.get("user_id", ""), grupo_id):
+        logger.warning("Acesso a grupo negado: path=%s user=%s grupo=%s", path, session.get("user_id"), grupo_id)
+        if path.startswith("/api/"):
+            return jsonify({"erro": "Você não pertence a este grupo."}), 403
+        return render_template("403.html"), 403
+
+    # Alunos podem trabalhar no grupo e registrar medições, mas não podem
+    # apagar o grupo inteiro nem limpar o histórico compartilhado.
+    if request.method == "POST" and (path == "/excluir-grupo" or path.startswith("/limpar-")):
+        if current_role() not in {"professor", "admin_instituicao", "admin_plataforma"}:
+            return render_template("403.html"), 403
 
 
 @app.after_request
@@ -145,23 +165,25 @@ def api_grupo_participantes(grupo_id):
 
 @app.route("/cadastro-escolar", methods=["GET", "POST"])
 def cadastro_escolar():
-    mensagem = ""; erro = ""
+    mensagem = ""; erro = ""; role = current_role()
+    if role not in {"professor", "admin_instituicao", "admin_plataforma"}:
+        return render_template("403.html"), 403
     if request.method == "POST":
         try:
-            resultado = cadastrar_contexto_escolar({
-                "escola": request.form.get("escola", "").strip() or "Não informada",
+            resultado = cadastrar_somente_contexto_escolar({
+                "escola": request.form.get("escola", "").strip(),
                 "rede": request.form.get("rede", "").strip(),
                 "municipio": request.form.get("municipio", "").strip(),
                 "estado": request.form.get("estado", "").strip(),
                 "ano_letivo": request.form.get("ano_letivo", "").strip() or "2026",
-                "serie": request.form.get("serie", "").strip() or "Não informada",
-                "turma": request.form.get("turma", "").strip() or "Sem turma",
+                "serie": request.form.get("serie", "").strip(),
+                "turma": request.form.get("turma", "").strip(),
                 "turno": request.form.get("turno", "").strip(),
                 "componente_curricular": request.form.get("componente_curricular", "Física").strip() or "Física",
                 "professor_responsavel": session.get("user_email", ""),
-            })
+            }, session.get("user_id", ""))
             turma = resultado.get("turma") or {}; escola = resultado.get("escola") or {}
-            mensagem = f"Contexto salvo. Turma {turma.get('serie_ano', '')} — {turma.get('turma', '')} disponível para criar ambientes experimentais em {escola.get('nome', 'sua escola')}."
+            mensagem = f"Contexto escolar salvo. {escola.get('nome', 'Sua escola')} · {turma.get('serie_ano', '')} · Turma {turma.get('turma', '')}. Agora você pode criar um grupo experimental."
         except (LookupError, PermissionError, ValueError) as exc: erro = str(exc)
         except Exception:
             logger.exception("Falha ao cadastrar contexto escolar"); erro = "Não foi possível salvar o contexto escolar. Verifique os dados e tente novamente."
