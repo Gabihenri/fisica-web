@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Escola e turma — Física Web</title>
+  <style>
+    :root{--azul:#0b2f63;--azul2:#1479e8;--borda:#d9e2ef;--texto:#17324d;--suave:#f5f8fc;--erro:#9f1d2e;--ok:#176b3a}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(135deg,#071d3b,#0d4c91);color:var(--texto);min-height:100vh}
+    main{width:min(900px,94vw);margin:40px auto;padding:28px}
+    .card{background:#fff;border-radius:20px;padding:30px;box-shadow:0 16px 50px rgba(0,0,0,.22)}
+    h1{margin:0 0 10px;font-size:clamp(28px,4vw,40px)}
+    .intro{margin:0 0 28px;color:#52657b;font-size:1.05rem;line-height:1.55}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+    .field{margin:2px 0}
+    label{display:block;font-weight:750;margin-bottom:8px;font-size:1rem}
+    input,select{width:100%;padding:14px 16px;border:1px solid var(--borda);border-radius:12px;background:#fff;color:#172b40;font-size:1rem;min-height:50px}
+    input:focus,select:focus{outline:3px solid rgba(20,121,232,.22);border-color:var(--azul2)}
+    .help{margin:7px 0 0;color:#61758b;font-size:.92rem;line-height:1.45}
+    .actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:26px}
+    button,.button{display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:12px 18px;border:0;border-radius:12px;background:var(--azul2);color:#fff;font-weight:750;font-size:1rem;cursor:pointer;text-decoration:none}
+    .secondary{background:#eef4fb;color:#12416f;border:1px solid #cbdced}
+    .status{padding:14px 16px;border-radius:12px;margin:0 0 20px;line-height:1.45}
+    .status.error{background:#fff0f2;color:var(--erro);border:1px solid #f0bdc6}
+    .status.ok{background:#eefaf3;color:var(--ok);border:1px solid #b8dfc7}
+    .nav{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:16px}
+    .nav a{color:#fff;text-decoration:none;font-weight:700}
+    .required{color:#9f1d2e}
+    @media(max-width:620px){main{margin:18px auto;padding:10px}.card{padding:22px}.grid{grid-template-columns:1fr}.actions>*{width:100%}.nav{align-items:flex-start;flex-direction:column}}
+  </style>
+</head>
+<body>
+<main>
+  <div class="nav"><a href="/ambiente">← Criar ambiente</a><a href="/meus-grupos">Meus grupos</a></div>
+  <section class="card" aria-labelledby="titulo">
+    <h1 id="titulo">Cadastrar escola e turma</h1>
+    <p class="intro">Cadastre o contexto escolar uma vez. Depois disso, a turma aparecerá automaticamente na tela de criação de ambientes experimentais.</p>
+
+    {% if erro %}<div class="status error" role="alert">{{ erro }}</div>{% endif %}
+    {% if mensagem %}<div class="status ok" role="status">{{ mensagem }}</div>{% endif %}
+
+    <form method="post" action="/cadastro-escolar" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="grid">
+        <div class="field">
+          <label for="escola">Escola <span class="required" aria-hidden="true">*</span></label>
+          <input id="escola" name="escola" type="text" required maxlength="180" placeholder="Nome da escola" autocomplete="organization">
+        </div>
+        <div class="field">
+          <label for="rede">Rede de ensino</label>
+          <input id="rede" name="rede" type="text" maxlength="80" placeholder="Ex.: SEDUC-SP">
+        </div>
+        <div class="field">
+          <label for="municipio">Município</label>
+          <input id="municipio" name="municipio" type="text" maxlength="100" placeholder="Ex.: São Paulo" autocomplete="address-level2">
+        </div>
+        <div class="field">
+          <label for="estado">UF</label>
+          <input id="estado" name="estado" type="text" maxlength="2" placeholder="SP" autocomplete="address-level1" style="text-transform:uppercase">
+        </div>
+        <div class="field">
+          <label for="ano_letivo">Ano letivo <span class="required" aria-hidden="true">*</span></label>
+          <input id="ano_letivo" name="ano_letivo" type="number" required min="2024" max="2100" value="2026">
+        </div>
+        <div class="field">
+          <label for="serie">Série/ano <span class="required" aria-hidden="true">*</span></label>
+          <input id="serie" name="serie" type="text" required maxlength="60" placeholder="Ex.: 1ª série do Ensino Médio">
+        </div>
+        <div class="field">
+          <label for="turma">Turma <span class="required" aria-hidden="true">*</span></label>
+          <input id="turma" name="turma" type="text" required maxlength="30" placeholder="Ex.: A">
+        </div>
+        <div class="field">
+          <label for="turno">Turno</label>
+          <select id="turno" name="turno">
+            <option value="">Selecione</option>
+            <option value="Manhã">Manhã</option>
+            <option value="Tarde">Tarde</option>
+            <option value="Noite">Noite</option>
+            <option value="Integral">Integral</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="componente_curricular">Componente curricular</label>
+          <input id="componente_curricular" name="componente_curricular" type="text" maxlength="100" value="Física">
+        </div>
+      </div>
+
+      <p class="help">Os campos marcados com * são obrigatórios. Se a escola já existir no cadastro, o sistema reutilizará o registro em vez de duplicá-lo.</p>
+
+      <div class="actions">
+        <button type="submit">Salvar escola e turma</button>
+        <a class="button secondary" href="/ambiente">Cancelar</a>
+      </div>
+    </form>
+  </section>
+</main>
+</body>
+</html>
