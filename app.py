@@ -79,19 +79,23 @@ def security_guard():
 
 
 @app.after_request
-def inject_accessibility_voice_layer(response):
-    """Carrega a camada de acessibilidade por voz em todas as páginas HTML."""
+def inject_accessibility_layers(response):
+    """Carrega as camadas de acessibilidade em todas as páginas HTML."""
     content_type = response.headers.get("Content-Type", "")
     if "text/html" not in content_type.lower():
         return response
     try:
         body = response.get_data(as_text=True)
-        marker = '<script src="/static/accessibility-voice.js" defer></script>'
-        if marker not in body and "</body>" in body:
-            body = body.replace("</body>", f"{marker}</body>")
-            response.set_data(body)
+        markers = (
+            '<script src="/static/accessibility-voice.js" defer></script>',
+            '<script src="/static/accessibility-science.js" defer></script>',
+        )
+        for marker in markers:
+            if marker not in body and "</body>" in body:
+                body = body.replace("</body>", f"{marker}</body>", 1)
+        response.set_data(body)
     except Exception:
-        logger.exception("Falha ao injetar camada de acessibilidade por voz")
+        logger.exception("Falha ao injetar camadas de acessibilidade")
     return response
 
 
