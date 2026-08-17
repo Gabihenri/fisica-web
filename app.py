@@ -9,7 +9,7 @@ from supabase import create_client
 
 from app_core import app
 from ambientes import criar_ambiente_compartilhado, entrar_ambiente_por_codigo, listar_turmas_para_ambiente
-from db import cadastrar_contexto_escolar, listar_grupos_usuario, registrar_perfil_usuario
+from db import cadastrar_contexto_escolar, listar_grupos_usuario, obter_contexto_grupo, registrar_perfil_usuario
 from security import current_role
 
 SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "").strip()
@@ -90,6 +90,7 @@ def inject_accessibility_layers(response):
             '<script src="/static/accessibility-voice.js" defer></script>',
             '<script src="/static/accessibility-science.js" defer></script>',
             '<script src="/static/experiment-illustrations.js" defer></script>',
+            '<script src="/static/participant-persistence.js" defer></script>',
         )
         for marker in markers:
             if marker not in body and "</body>" in body:
@@ -171,6 +172,22 @@ def meus_grupos():
     return render_template("meus_grupos.html", grupos=listar_grupos_usuario(session.get("user_id", "")), email=session.get("user_email", ""), papel=current_role())
 
 
+@app.route("/api/grupo/<grupo_id>/participantes")
+def api_grupo_participantes(grupo_id):
+    """Retorna somente os nomes do grupo para repovoar o formulário após recarregar."""
+    try:
+        contexto = obter_contexto_grupo(grupo_id.strip())
+        if not contexto:
+            return jsonify({"erro": "Grupo não encontrado.", "participantes": []}), 404
+        participantes = contexto.get("participantes") or []
+        return jsonify({"participantes": [{"codigo": p.get("codigo_participante", ""), "nome": p.get("nome_exibicao", "")} for p in participantes]})
+    except PermissionError as exc:
+        return jsonify({"erro": str(exc), "participantes": []}), 403
+    except Exception:
+        logger.exception("Falha ao carregar participantes do grupo")
+        return jsonify({"erro": "Não foi possível carregar os participantes.", "participantes": []}), 500
+
+
 @app.route("/cadastro-escolar", methods=["GET", "POST"])
 def cadastro_escolar():
     mensagem = ""
@@ -235,7 +252,6 @@ def laboratorio(nome):
     if not template: return render_template("404.html"), 404
     return render_template(template)
 
-# Compatibility aliases preserve existing links while the parametrized route becomes canonical.
 for _nome, _template in LABORATORIOS.items():
     _endpoint = f"legacy_laboratorio_{_nome.replace('-', '_')}"
     _path = f"/laboratorio-{_nome}"
