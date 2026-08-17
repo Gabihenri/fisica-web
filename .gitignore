@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Local/test data
+grupo_*.json
+*.sqlite
+*.db
+
+# Generated reports and charts
+*.pdf
+*.png
+!static/**/*.png
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Test/cache
+.pytest_cache/
+.coverage
+htmlcov/
