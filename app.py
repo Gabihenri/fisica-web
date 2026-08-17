@@ -25,11 +25,7 @@ def aplicar_home_clean_css(response):
         conteudo = response.get_data()
         marcador = b"</head>"
         if b"home-clean.css" not in conteudo and marcador in conteudo:
-            conteudo = conteudo.replace(
-                marcador,
-                b'<link rel="stylesheet" href="/static/home-clean.css?v=1">\n</head>',
-                1,
-            )
+            conteudo = conteudo.replace(marcador, b'<link rel="stylesheet" href="/static/home-clean.css?v=1">\n</head>', 1)
             response.set_data(conteudo)
     return response
 
@@ -51,13 +47,7 @@ def exigir_login():
     caminho = request.path
     if caminho.startswith("/static/"):
         return None
-    publicos = {
-        "/acesso",
-        "/api/acesso/login",
-        "/api/acesso/cadastro",
-        "/api/acesso/status",
-        "/api/health/supabase",
-    }
+    publicos = {"/acesso", "/api/acesso/login", "/api/acesso/cadastro", "/api/acesso/status", "/api/health/supabase"}
     if caminho in publicos:
         return None
     if not session.get("user_id"):
@@ -95,15 +85,9 @@ def api_acesso_cadastro():
         papel = "professor"
     if not nome or not email or len(senha) < 8:
         return jsonify({"erro": "Informe nome, e-mail e uma senha com pelo menos 8 caracteres."}), 400
-
     cliente = _auth_client()
     try:
-        criado = cliente.auth.admin.create_user({
-            "email": email,
-            "password": senha,
-            "email_confirm": True,
-            "user_metadata": {"nome": nome, "papel_solicitado": papel},
-        })
+        criado = cliente.auth.admin.create_user({"email": email, "password": senha, "email_confirm": True, "user_metadata": {"nome": nome, "papel_solicitado": papel}})
         user = getattr(criado, "user", None)
         if user:
             registrar_perfil_usuario(str(user.id), nome, papel)
@@ -115,11 +99,7 @@ def api_acesso_cadastro():
         if "already" in mensagem_admin or "registered" in mensagem_admin or "exists" in mensagem_admin:
             return jsonify({"erro": "Este e-mail já possui cadastro."}), 409
         try:
-            resposta = _auth_client().auth.sign_up({
-                "email": email,
-                "password": senha,
-                "options": {"data": {"nome": nome, "papel_solicitado": papel}},
-            })
+            resposta = cliente.auth.sign_up({"email": email, "password": senha, "options": {"data": {"nome": nome, "papel_solicitado": papel}}})
             user = _salvar_sessao_auth(resposta)
             if user:
                 registrar_perfil_usuario(str(user.id), nome, papel)
@@ -135,11 +115,7 @@ def api_acesso_cadastro():
 
 @app.route("/api/acesso/status")
 def api_acesso_status():
-    return jsonify({
-        "autenticado": bool(session.get("user_id")),
-        "email": session.get("user_email", ""),
-        "rota_acesso": "/acesso",
-    })
+    return jsonify({"autenticado": bool(session.get("user_id")), "email": session.get("user_email", ""), "rota_acesso": "/acesso"})
 
 
 @app.route("/api/acesso/logout", methods=["POST"])
@@ -170,13 +146,7 @@ def ambiente():
         acao = request.form.get("acao", "").strip().lower()
         try:
             if acao == "criar":
-                criado = criar_ambiente_compartilhado(
-                    user_id=user_id,
-                    titulo=request.form.get("titulo", ""),
-                    experimento=request.form.get("experimento", ""),
-                    turma_id=request.form.get("turma_id", ""),
-                    professor_responsavel=session.get("user_email", ""),
-                )
+                criado = criar_ambiente_compartilhado(user_id=user_id, titulo=request.form.get("titulo", ""), experimento=request.form.get("experimento", ""), turma_id=request.form.get("turma_id", ""), professor_responsavel=session.get("user_email", ""))
                 mensagem = f"Ambiente criado. Código: {criado['codigo']}"
             elif acao == "entrar":
                 resultado = entrar_ambiente_por_codigo(user_id, request.form.get("codigo", ""))
@@ -222,6 +192,26 @@ def laboratorio_plano_inclinado():
 @app.route("/laboratorio-som")
 def laboratorio_som():
     return render_template("laboratorio_som.html")
+
+
+@app.route("/laboratorio-mru")
+def laboratorio_mru():
+    return render_template("laboratorio_mru.html")
+
+
+@app.route("/laboratorio-mruv")
+def laboratorio_mruv():
+    return render_template("laboratorio_mruv.html")
+
+
+@app.route("/laboratorio-queda-livre")
+def laboratorio_queda_livre():
+    return render_template("laboratorio_queda_livre.html")
+
+
+@app.route("/laboratorio-lancamento")
+def laboratorio_lancamento():
+    return render_template("laboratorio_lancamento.html")
 
 
 if __name__ == "__main__":
