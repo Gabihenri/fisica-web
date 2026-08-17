@@ -1,5 +1,6 @@
 import logging
 import os
+import secrets
 
 from flask import jsonify, redirect, render_template, request, session
 from flask_limiter import Limiter
@@ -7,118 +8,186 @@ from flask_limiter.util import get_remote_address
 from supabase import create_client
 
 from app_core import app
-from db import listar_grupos_usuario, registrar_perfil_usuario
 from ambientes import criar_ambiente_compartilhado, entrar_ambiente_por_codigo, listar_turmas_para_ambiente
+from db import listar_grupos_usuario, registrar_perfil_usuario
+from security import current_role
 
 SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "").strip()
 if not SECRET_KEY:
     raise RuntimeError("FLASK_SECRET_KEY é obrigatória. Configure a variável de ambiente antes de iniciar o aplicativo.")
-
 app.secret_key = SECRET_KEY
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SECURE=os.getenv("FLASK_SESSION_COOKIE_SECURE", "true").lower() == "true",
+    SESSION_COOKIE_SAMESITE="Lax",
+    MAX_CONTENT_LENGTH=2 * 1024 * 1024,
+)
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(level=getattr(logging, LOG_LEVEL, logging.INFO), format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger("fisica-web")
+limiter = Limiter(key_func=get_remote_address, app=app, default_limits=[], storage_uri=os.getenv("RATELIMIT_STORAGE_URI", "memory://"), strategy="fixed-window")
 
-limiter = Limiter(
-    key_func=get_remote_address,
-    app=app,
-    default_limits=[],
-    storage_uri=os.getenv("RATELIMIT_STORAGE_URI", "memory://"),
-    strategy="fixed-window",
-)
 
 def _auth_client():
-    url=os.getenv("SUPABASE_URL","").strip(); key=os.getenv("SUPABASE_KEY","").strip()
-    if not url or not key: raise RuntimeError("Supabase Auth não configurado no ambiente.")
-    return create_client(url,key)
+    url = os.getenv("SUPABASE_URL", "").strip(); key = os.getenv("SUPABASE_KEY", "").strip()
+    if not url or not key:
+        raise RuntimeError("Supabase Auth não configurado no ambiente.")
+    return create_client(url, key)
+
 
 def _salvar_sessao_auth(r):
-    s=getattr(r,"session",None); u=getattr(r,"user",None)
-    if s: session["access_token"]=getattr(s,"access_token",None); session["refresh_token"]=getattr(s,"refresh_token",None)
-    if u: session["user_id"]=str(getattr(u,"id","") or ""); session["user_email"]=getattr(u,"email","") or ""
+    s = getattr(r, "session", None); u = getattr(r, "user", None)
+    if s:
+        session["access_token"] = getattr(s, "access_token", None)
+        session["refresh_token"] = getattr(s, "refresh_token", None)
+    if u:
+        session["user_id"] = str(getattr(u, "id", "") or "")
+        session["user_email"] = getattr(u, "email", "") or ""
     return u
 
-@app.before_request
-def exigir_login():
-    p=request.path
-    if p.startswith("/static/") or p in {"/acesso","/api/acesso/login","/api/acesso/cadastro","/api/acesso/status","/api/health/supabase"}: return None
-    if not session.get("user_id"):
-        if p.startswith("/api/"): return jsonify({"erro":"Autenticação necessária.","destino":"/acesso"}),401
-        return redirect("/acesso")
 
+def _csrf_token():
+    token = session.get("csrf_token")
+    if not token:
+        token = secrets.token_urlsafe(32)
+        session["csrf_token"] = token
+    return token
+
+
+@app.context_processor
+def inject_security_helpers():
+    return {"csrf_token": _csrf_token, "current_role": current_role}
+
+
+@app.before_request
+def security_guard():
+    path = request.path
+    public = {"/acesso", "/api/acesso/login", "/api/acesso/cadastro", "/api/acesso/status", "/api/health/supabase"}
+    if path.startswith("/static/") or path in public:
+        return None
+    if not session.get("user_id"):
+        if path.startswith("/api/"):
+            return jsonify({"erro": "Autenticação necessária.", "destino": "/acesso"}), 401
+        return redirect("/acesso")
+    if request.method == "POST":
+        supplied = request.form.get("csrf_token") or request.headers.get("X-CSRF-Token")
+        expected = session.get("csrf_token")
+        if not supplied or not expected or not secrets.compare_digest(str(supplied), str(expected)):
+            logger.warning("CSRF rejeitado: path=%s user=%s", path, session.get("user_id"))
+            return jsonify({"erro": "Solicitação inválida. Atualize a página e tente novamente."}), 400
+
+
+@app.route("/api/acesso/login", methods=["POST"])
+@limiter.limit("5 per minute")
+def api_acesso_login():
+    d = request.get_json(silent=True) or {}; email = str(d.get("email") or "").strip().lower(); senha = str(d.get("senha") or "")
+    if not email or not senha:
+        return jsonify({"erro": "Informe e-mail e senha."}), 400
+    try:
+        u = _salvar_sessao_auth(_auth_client().auth.sign_in_with_password({"email": email, "password": senha}))
+        if not u:
+            return jsonify({"erro": "Não foi possível criar a sessão."}), 401
+        session["csrf_token"] = secrets.token_urlsafe(32)
+        return jsonify({"ok": True, "destino": "/meus-grupos"})
+    except Exception:
+        logger.exception("Falha de autenticação")
+        return jsonify({"erro": "E-mail ou senha inválidos."}), 401
+
+
+@app.route("/api/acesso/cadastro", methods=["POST"])
+def api_acesso_cadastro():
+    d = request.get_json(silent=True) or {}; nome = str(d.get("nome") or "").strip(); email = str(d.get("email") or "").strip().lower(); senha = str(d.get("senha") or ""); papel = str(d.get("papel") or "professor").strip().lower()
+    if papel not in {"professor", "estudante"}: papel = "professor"
+    if not nome or not email or len(senha) < 8:
+        return jsonify({"erro": "Informe nome, e-mail e uma senha com pelo menos 8 caracteres."}), 400
+    try:
+        resposta = _auth_client().auth.sign_up({"email": email, "password": senha, "options": {"data": {"nome": nome, "papel_solicitado": papel}}})
+        user = _salvar_sessao_auth(resposta)
+        if user:
+            registrar_perfil_usuario(str(user.id), nome, papel)
+        if session.get("user_id"):
+            session["csrf_token"] = secrets.token_urlsafe(32)
+            return jsonify({"ok": True, "destino": "/meus-grupos"})
+        return jsonify({"ok": True, "mensagem": "Cadastro criado. Confirme o e-mail se solicitado."})
+    except Exception as exc:
+        logger.exception("Falha ao criar cadastro")
+        if any(x in str(exc).lower() for x in ("already", "registered", "exists")):
+            return jsonify({"erro": "Este e-mail já possui cadastro."}), 409
+        return jsonify({"erro": "Não foi possível criar o cadastro agora."}), 400
+
+
+@app.route("/api/acesso/status")
+def api_acesso_status():
+    return jsonify({"autenticado": bool(session.get("user_id")), "email": session.get("user_email", ""), "papel": current_role()})
+
+
+@app.route("/api/acesso/logout", methods=["POST"])
+def api_acesso_logout():
+    session.clear(); return jsonify({"ok": True, "destino": "/acesso"})
+
+
+@app.route("/sair", methods=["POST"])
+def sair():
+    session.clear(); return redirect("/acesso")
+
+
+@app.errorhandler(403)
+def erro_403(_exc): return render_template("403.html"), 403
+@app.errorhandler(404)
+def erro_404(_exc): return render_template("404.html"), 404
+@app.errorhandler(429)
+def erro_429(_exc): return render_template("429.html"), 429
 @app.errorhandler(500)
 def erro_500(exc):
     logger.exception("Erro interno não tratado", exc_info=exc)
     return render_template("500.html"), 500
 
-@app.route("/api/acesso/login",methods=["POST"])
-@limiter.limit("5 per minute")
-def api_acesso_login():
-    d=request.get_json(silent=True) or {}; email=str(d.get("email") or "").strip().lower(); senha=str(d.get("senha") or "")
-    if not email or not senha:return jsonify({"erro":"Informe e-mail e senha."}),400
-    try:
-        u=_salvar_sessao_auth(_auth_client().auth.sign_in_with_password({"email":email,"password":senha}))
-        if not u:return jsonify({"erro":"Não foi possível criar a sessão."}),401
-        return jsonify({"ok":True,"destino":"/meus-grupos"})
-    except Exception:
-        logger.warning("Falha de autenticação para tentativa de login", extra={"ip":get_remote_address()})
-        return jsonify({"erro":"E-mail ou senha inválidos."}),401
 
-@app.route("/api/acesso/status")
-def api_acesso_status():return jsonify({"autenticado":bool(session.get("user_id")),"email":session.get("user_email","")})
-@app.route("/api/acesso/logout",methods=["POST"])
-def api_acesso_logout():session.clear();return jsonify({"ok":True,"destino":"/acesso"})
-@app.route("/sair",methods=["POST"])
-def sair():session.clear();return redirect("/acesso")
 @app.route("/meus-grupos")
-def meus_grupos():return render_template("meus_grupos.html",grupos=listar_grupos_usuario(session.get("user_id","")),email=session.get("user_email",""))
-@app.route("/ambiente",methods=["GET","POST"])
+def meus_grupos():
+    return render_template("meus_grupos.html", grupos=listar_grupos_usuario(session.get("user_id", "")), email=session.get("user_email", ""), papel=current_role())
+
+
+@app.route("/ambiente", methods=["GET", "POST"])
 def ambiente():
-    uid=session.get("user_id",""); mensagem=""; erro=""; criado=None
-    if request.method=="POST":
+    uid = session.get("user_id", ""); role = current_role(); mensagem = ""; erro = ""; criado = None
+    if request.method == "POST":
         try:
-            acao=request.form.get("acao","").strip().lower()
-            if acao=="criar":
-                criado=criar_ambiente_compartilhado(user_id=uid,titulo=request.form.get("titulo",""),experimento=request.form.get("experimento",""),turma_id=request.form.get("turma_id",""),professor_responsavel=session.get("user_email","")); mensagem=f"Ambiente criado. Código: {criado['codigo']}"
-            elif acao=="entrar":
-                r=entrar_ambiente_por_codigo(uid,request.form.get("codigo","")); return redirect(f"/?grupo_id={r['grupo']['id']}#contexto")
-            else: erro="Escolha criar ou entrar em um ambiente."
-        except (LookupError,PermissionError,ValueError) as e:
-            logger.info("Operação de ambiente rejeitada: %s", e)
-            erro=str(e)
+            acao = request.form.get("acao", "").strip().lower()
+            if acao == "criar":
+                if role not in {"professor", "admin_instituicao", "admin_plataforma"}:
+                    return render_template("403.html"), 403
+                criado = criar_ambiente_compartilhado(user_id=uid, titulo=request.form.get("titulo", ""), experimento=request.form.get("experimento", ""), turma_id=request.form.get("turma_id", ""), professor_responsavel=session.get("user_email", ""))
+                mensagem = f"Ambiente criado. Código: {criado['codigo']}"
+            elif acao == "entrar":
+                resultado = entrar_ambiente_por_codigo(uid, request.form.get("codigo", "")); return redirect(f"/?grupo_id={resultado['grupo']['id']}#contexto")
+            else: erro = "Escolha criar ou entrar em um ambiente."
+        except (LookupError, PermissionError, ValueError) as exc:
+            erro = str(exc)
         except Exception:
             logger.exception("Falha inesperada na operação de ambiente")
-            erro="Não foi possível concluir a operação. Verifique os dados e tente novamente."
-    return render_template("ambiente.html",turmas=listar_turmas_para_ambiente(uid),mensagem=mensagem,erro=erro,criado=criado)
+            erro = "Não foi possível concluir a operação. Verifique os dados e tente novamente."
+    return render_template("ambiente.html", turmas=listar_turmas_para_ambiente(uid), mensagem=mensagem, erro=erro, criado=criado, papel=role)
+
+
 @app.route("/configuracao-experimental")
 def configuracao_experimental(): return render_template("configuracao_experimental.html")
-@app.route("/laboratorio-movel")
-def laboratorio_movel():return render_template("laboratorio_movel.html")
-@app.route("/laboratorio-sensores")
-def laboratorio_sensores():return render_template("laboratorio_sensores.html")
-@app.route("/laboratorio-elevador")
-def laboratorio_elevador():return render_template("laboratorio_elevador.html")
-@app.route("/laboratorio-pendulo")
-def laboratorio_pendulo():return app.send_static_file("laboratorio-pendulo.html")
-@app.route("/laboratorio-plano-inclinado")
-def laboratorio_plano_inclinado():return render_template("laboratorio_plano_inclinado.html")
-@app.route("/laboratorio-som")
-def laboratorio_som():return render_template("laboratorio_som.html")
-@app.route("/laboratorio-mru")
-def laboratorio_mru():return render_template("laboratorio_mru.html")
-@app.route("/laboratorio-mruv")
-def laboratorio_mruv():return render_template("laboratorio_mruv.html")
-@app.route("/laboratorio-queda-livre")
-def laboratorio_queda_livre():return render_template("laboratorio_queda_livre.html")
-@app.route("/laboratorio-lancamento")
-def laboratorio_lancamento():return render_template("laboratorio_lancamento.html")
-@app.route("/laboratorio-newton")
-def laboratorio_newton():return render_template("laboratorio-newton.html")
-@app.route("/laboratorio-energia")
-def laboratorio_energia():return render_template("laboratorio-energia.html")
-@app.route("/laboratorio-atrito")
-def laboratorio_atrito():return render_template("laboratorio-atrito.html")
-@app.route("/laboratorio-circular")
-def laboratorio_circular():return render_template("laboratorio-circular.html")
-if __name__=="__main__":app.run(debug=True)
+
+LABORATORIOS = {
+    "movel":"laboratorio_movel.html", "sensores":"laboratorio_sensores.html", "elevador":"laboratorio_elevador.html", "pendulo":"laboratorio_pendulo.html", "plano-inclinado":"laboratorio_plano_inclinado.html", "som":"laboratorio_som.html", "mru":"laboratorio_mru.html", "mruv":"laboratorio_mruv.html", "queda-livre":"laboratorio_queda_livre.html", "lancamento":"laboratorio_lancamento.html", "newton":"laboratorio-newton.html", "energia":"laboratorio-energia.html", "atrito":"laboratorio-atrito.html", "circular":"laboratorio-circular.html",
+}
+
+@app.route("/laboratorio/<nome>")
+def laboratorio(nome):
+    template = LABORATORIOS.get(nome)
+    if not template: return render_template("404.html"), 404
+    return render_template(template)
+
+# Compatibility aliases preserve existing links while the parametrized route becomes canonical.
+for _nome, _template in LABORATORIOS.items():
+    _endpoint = f"legacy_laboratorio_{_nome.replace('-', '_')}"
+    _path = f"/laboratorio-{_nome}"
+    app.add_url_rule(_path, _endpoint, lambda template=_template: render_template(template))
+
+if __name__ == "__main__": app.run(debug=False)
