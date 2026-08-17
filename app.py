@@ -78,6 +78,23 @@ def security_guard():
             return jsonify({"erro": "Solicitação inválida. Atualize a página e tente novamente."}), 400
 
 
+@app.after_request
+def inject_accessibility_voice_layer(response):
+    """Carrega a camada de acessibilidade por voz em todas as páginas HTML."""
+    content_type = response.headers.get("Content-Type", "")
+    if "text/html" not in content_type.lower():
+        return response
+    try:
+        body = response.get_data(as_text=True)
+        marker = '<script src="/static/accessibility-voice.js" defer></script>'
+        if marker not in body and "</body>" in body:
+            body = body.replace("</body>", f"{marker}</body>")
+            response.set_data(body)
+    except Exception:
+        logger.exception("Falha ao injetar camada de acessibilidade por voz")
+    return response
+
+
 @app.route("/api/acesso/login", methods=["POST"])
 @limiter.limit("5 per minute")
 def api_acesso_login():
