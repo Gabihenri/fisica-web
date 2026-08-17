@@ -1,0 +1,52 @@
+body:has(.shell){background:#f4f7fb;color:#172b4d}
+body:has(.shell):before{display:none}
+body:has(.shell) .shell{width:min(1120px,calc(100% - 28px));padding:20px 0 88px}
+body:has(.shell) .top{background:linear-gradient(135deg,#062a68,#0b4ca4);margin:0 -14px 16px;padding:16px 14px;border-radius:0 0 22px 22px}
+body:has(.shell) .brand-name{color:#fff}
+body:has(.shell) .tagline{color:#cfe0ff}
+body:has(.shell) .mark{box-shadow:none}
+body:has(.shell) .nav{position:sticky;top:8px;background:#fff;border:1px solid #dce5f0;box-shadow:0 6px 20px rgba(20,55,100,.08);backdrop-filter:none}
+body:has(.shell) .nav a{color:#29456b}
+body:has(.shell) .nav a:hover,body:has(.shell) .nav a:focus{background:#eaf3ff;color:#075ac7}
+body:has(.shell) .card{background:#fff;border:1px solid #e0e7f0;box-shadow:0 8px 28px rgba(28,57,91,.08);backdrop-filter:none;color:#172b4d}
+body:has(.shell) .hero-main{padding:28px}
+body:has(.shell) .hero-main h1,body:has(.shell) .section-head h2,body:has(.shell) h2,body:has(.shell) h3{color:#142f55}
+body:has(.shell) .hero p,body:has(.shell) .section-head p,body:has(.shell) .experiment p,body:has(.shell) .context-note,body:has(.shell) .mini{color:#62748f}
+body:has(.shell) .eyebrow{color:#0878d8}
+body:has(.shell) .hero-side{background:#f7fbff;color:#17345b}
+body:has(.shell) .formula{color:#17345b}
+body:has(.shell) .chip{color:#35618d;background:#f0f7ff;border-color:#cfe0f3}
+body:has(.shell) .secondary{background:#fff;color:#174a83;border-color:#b9cde5;box-shadow:none}
+body:has(.shell) .primary{background:#0969d9;box-shadow:0 6px 16px rgba(9,105,217,.2)}
+body:has(.shell) .fields input,body:has(.shell) .context-form input{background:#fff;color:#172b4d;border-color:#cbd8e7}
+body:has(.shell) .fields input::placeholder,body:has(.shell) .context-form input::placeholder{color:#8291a7}
+body:has(.shell) .stat{background:#f7faff;border-color:#dce7f3}
+body:has(.shell) .stat small{color:#6c7f99}
+body:has(.shell) .table-wrap{border-color:#dce6f0}
+body:has(.shell) th{background:#f5f8fc;color:#526a88}
+body:has(.shell) th,body:has(.shell) td{border-color:#e2e9f1;color:#314a6a}
+body:has(.shell) .bottom{background:rgba(255,255,255,.96);border-color:#dbe5ef;box-shadow:0 8px 28px rgba(20,50,90,.15);backdrop-filter:blur(16px)}
+body:has(.shell) .bottom a{color:#62748f}
+body:has(.shell) .bottom a.active{color:#0869d9}
+body:has(.shell) .bottom .plus{background:#0969d9}
+body:has(.shell) .logout{background:rgba(255,255,255,.08);color:#ffd1d5;border-color:rgba(255,170,180,.55)}
+@media(max-width:600px){
+ body:has(.shell) .shell{width:100%;padding:0 12px 92px}
+ body:has(.shell) .top{margin:0 -12px 12px;padding:15px 16px;border-radius:0 0 20px 20px}
+ body:has(.shell) .nav{display:none}
+ body:has(.shell) .hero{display:block}
+ body:has(.shell) .hero-main{padding:22px 18px}
+ body:has(.shell) .hero-main h1{font-size:2rem;line-height:1.08}
+ body:has(.shell) .hero-actions{margin-top:15px}
+ body:has(.shell) .hero-actions a:nth-child(2){display:none}
+ body:has(.shell) .hero-actions>*{width:100%;min-height:48px}
+ body:has(.shell) .section{margin-top:20px}
+ body:has(.shell) .section-head{margin-bottom:9px}
+ body:has(.shell) .section-head h2{font-size:1.3rem}
+ body:has(.shell) .grid-3{gap:10px}
+ body:has(.shell) .experiment{padding:16px}
+ body:has(.shell) .context{gap:10px}
+ body:has(.shell) .context .card{box-shadow:none}
+ body:has(.shell) .hero-side{display:none}
+}
+@media(min-width:601px){body:has(.shell) .bottom{display:none!important}}
