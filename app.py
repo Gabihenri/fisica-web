@@ -19,6 +19,21 @@ def _auth_client():
     return create_client(url, key)
 
 
+@app.after_request
+def aplicar_home_clean_css(response):
+    if request.path == "/" and response.content_type and response.content_type.startswith("text/html"):
+        conteudo = response.get_data()
+        marcador = b"</head>"
+        if b"home-clean.css" not in conteudo and marcador in conteudo:
+            conteudo = conteudo.replace(
+                marcador,
+                b'<link rel="stylesheet" href="/static/home-clean.css?v=1">\n</head>',
+                1,
+            )
+            response.set_data(conteudo)
+    return response
+
+
 def _salvar_sessao_auth(auth_response):
     auth_session = getattr(auth_response, "session", None)
     user = getattr(auth_response, "user", None)
