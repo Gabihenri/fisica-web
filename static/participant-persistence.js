@@ -10,10 +10,7 @@
     for (let i = 1; i <= 5; i += 1) {
       let input = form.querySelector(`[name="nome${i}"]`);
       if (!input) {
-        input = inputs.find((candidate) => {
-          const placeholder = String(candidate.getAttribute('placeholder') || '').trim();
-          return placeholder === `Participante ${i}`;
-        });
+        input = inputs.find((candidate) => String(candidate.getAttribute('placeholder') || '').trim() === `Participante ${i}`);
       }
       if (input) {
         input.name = `nome${i}`;
@@ -25,6 +22,42 @@
 
   function groupId() {
     return new URLSearchParams(window.location.search).get('grupo_id') || '';
+  }
+
+  function prepareExistingGroupForm() {
+    const id = groupId();
+    const form = document.getElementById('grupoForm');
+    if (!id || !form) return;
+
+    let hidden = form.querySelector('[name="grupo_id"]');
+    if (!hidden) {
+      hidden = document.createElement('input');
+      hidden.type = 'hidden';
+      hidden.name = 'grupo_id';
+      form.appendChild(hidden);
+    }
+    hidden.value = id;
+
+    // Depois que o ambiente já existe, não pedir novamente escola/turma.
+    form.action = '/salvar-participantes';
+    const contextBlock = form.querySelector('.context-block');
+    if (contextBlock) contextBlock.style.display = 'none';
+
+    form.querySelectorAll('input').forEach((input) => {
+      if (!input.name.startsWith('nome')) input.disabled = true;
+    });
+
+    const button = form.querySelector('button[type="submit"]');
+    if (button) button.textContent = 'Salvar participantes';
+
+    const actions = form.querySelector('.actions');
+    if (actions) actions.style.marginTop = '0';
+
+    const participantsBlock = document.querySelector('.participants')?.closest('.context-block');
+    if (participantsBlock) {
+      const note = participantsBlock.querySelector('.context-note');
+      if (note) note.textContent = 'Os nomes ficam salvos no grupo e disponíveis para todos os integrantes.';
+    }
   }
 
   async function loadParticipants() {
@@ -41,32 +74,19 @@
       const data = await response.json();
       const participantes = Array.isArray(data.participantes) ? data.participantes : [];
       participantes.forEach((participante, index) => {
-        if (inputs[index] && participante && participante.nome) {
-          inputs[index].value = participante.nome;
-        }
+        if (inputs[index] && participante && participante.nome) inputs[index].value = participante.nome;
       });
     } catch (_) {
       // A página continua utilizável mesmo se a recuperação automática falhar.
     }
   }
 
-  function ensureNamesBeforeSubmit() {
-    participantInputs();
-  }
-
   function run() {
-    const form = document.getElementById('grupoForm');
     participantInputs();
-    if (form && !form.dataset.participantPersistenceBound) {
-      form.addEventListener('submit', ensureNamesBeforeSubmit);
-      form.dataset.participantPersistenceBound = 'true';
-    }
+    prepareExistingGroupForm();
     loadParticipants();
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', run, { once: true });
-  } else {
-    run();
-  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run, { once: true });
+  else run();
 })();
