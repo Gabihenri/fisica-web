@@ -24,6 +24,14 @@
   function isolate(){const k=key(),s=$('#experimentos'),cs=cards();if(!s||!cs.length)return;styles();if(!k){s.classList.add('selection-mode');s.classList.remove('experiment-focused');cs.forEach(c=>c.hidden=false);return}s.classList.add('experiment-focused');s.classList.remove('selection-mode');cs.forEach(c=>c.hidden=cardKey(c)!==k);['inicio','contexto','dados'].forEach(id=>{const e=$(`#${id}`);if(e)e.hidden=true});const a=$('.access');if(a)a.hidden=true;workspace(k);requestAnimationFrame(()=>s.scrollIntoView({block:'start',behavior:'auto'}))}
   function existingGroup(){const id=groupId(),f=$('#grupoForm');if(!id||!f)return;f.hidden=true;f.setAttribute('aria-hidden','true');let h=f.querySelector('[name="grupo_id"]');if(!h){h=document.createElement('input');h.type='hidden';h.name='grupo_id';f.appendChild(h)}h.value=id;f.action='/salvar-participantes';const st=$('#contexto .status');if(st&&!st.dataset.ready){const m=(st.textContent||'').match(/([A-Z0-9]+-[A-Z0-9]+)/i);st.innerHTML=`<strong>✓ Grupo ativo</strong><br>${m?`Código: ${m[1]}`:'Dados do grupo salvos e vinculados aos registros.'}`;st.classList.add('group-context-saved');st.dataset.ready='true'}}
   async function loadParticipants(){const id=groupId(),is=inputs();if(!id||!is.length)return;try{const r=await fetch(`/api/grupo/${encodeURIComponent(id)}/participantes`,{credentials:'same-origin',headers:{Accept:'application/json'}});if(!r.ok)return;const d=await r.json();(d.participantes||[]).forEach((p,i)=>{if(is[i]&&p?.nome)is[i].value=p.nome})}catch(_){} }
-  function run(){inputs();existingGroup();addOpen();isolate();loadParticipants()}
+  function run(){inputs();existingGroup();addOpen();isolate();loadParticipants();loadScientificAnalysis()}
+  function loadScientificAnalysis(){
+    if(!key() || document.querySelector('script[data-fisica-scientific-analysis]')) return;
+    const script=document.createElement('script');
+    script.src='/static/scientific-analysis.js?v=20260818';
+    script.defer=true;
+    script.dataset.fisicaScientificAnalysis='1';
+    document.head.appendChild(script);
+  }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();
 })();
