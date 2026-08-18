@@ -47,14 +47,18 @@
     return `/?${params.toString()}#experimentos`;
   }
 
+  function reportUrl(key) {
+    const id = groupId();
+    return id
+      ? `/relatorio/${encodeURIComponent(key)}?grupo_id=${encodeURIComponent(id)}`
+      : `/relatorio/${encodeURIComponent(key)}`;
+  }
+
   function addOpenButtons() {
     experimentCards().forEach((card) => {
       const key = cardKey(card);
       if (!key) return;
 
-      // O módulo de análise científica identifica cada laboratório por este atributo.
-      // A nova interface passou a criar os links dinamicamente e o atributo deixou
-      // de existir no HTML original; restaurá-lo aqui mantém os dois fluxos compatíveis.
       card.dataset.experiment = key;
 
       if (card.dataset.experimentNavigationReady === 'true') return;
@@ -103,7 +107,15 @@
     const backUrl = id ? `/?grupo_id=${encodeURIComponent(id)}#experimentos` : '/#experimentos';
     const header = document.createElement('div');
     header.className = 'experiment-workspace-header';
-    header.innerHTML = `<a class="secondary" href="${backUrl}">← Voltar aos experimentos</a><div class="workspace-title"><span class="workspace-icon" aria-hidden="true">${EXPERIMENTS[key].icon}</span><div><div class="eyebrow">Laboratório individual</div><h2>${EXPERIMENTS[key].title}</h2><p>Registre as medições deste experimento sem outros laboratórios na tela.</p></div></div>`;
+    header.innerHTML = `
+      <div class="workspace-navigation">
+        <a class="secondary" href="${backUrl}">← Voltar aos experimentos</a>
+        <a class="primary workspace-report" href="${reportUrl(key)}" target="_blank" rel="noopener">Gerar / imprimir relatório</a>
+      </div>
+      <div class="workspace-title">
+        <span class="workspace-icon" aria-hidden="true">${EXPERIMENTS[key].icon}</span>
+        <div><div class="eyebrow">Laboratório individual</div><h2>${EXPERIMENTS[key].title}</h2><p>Registre, analise e gere o relatório somente deste experimento.</p></div>
+      </div>`;
     head.replaceWith(header);
   }
 
@@ -114,12 +126,15 @@
     style.textContent = `
       .experiment h3[role="link"]{cursor:pointer}
       .experiment-open{display:flex;margin-top:12px;width:100%}
-      .experiment-workspace-header{display:flex;gap:16px;align-items:center;margin-bottom:14px;padding:4px 0}
-      .experiment-workspace-header .secondary{flex:0 0 auto}
-      .workspace-title{display:flex;gap:12px;align-items:center}
+      .experiment-workspace-header{display:flex;gap:16px;align-items:center;margin-bottom:14px;padding:4px 0;flex-wrap:wrap}
+      .workspace-navigation{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+      .workspace-navigation .secondary,.workspace-navigation .primary{min-height:42px}
+      .workspace-report{background:#0A3158;color:#fff;text-decoration:none}
+      .workspace-report:hover,.workspace-report:focus{background:#082746;color:#fff}
+      .workspace-title{display:flex;gap:12px;align-items:center;min-width:240px}
       .workspace-title h2{margin:2px 0 2px;font-size:1.55rem;color:#173b59}
       .workspace-title p{margin:0;color:#536b80;font-size:.9rem}
-      .workspace-icon{display:grid;place-items:center;width:48px;height:48px;border-radius:12px;background:#1267b1;color:#fff;font-size:1.35rem;font-weight:900}
+      .workspace-icon{display:grid;place-items:center;width:48px;height:48px;border-radius:12px;background:#0A3158;color:#fff;font-size:1.35rem;font-weight:900}
       #experimentos.selection-mode .experiment form,#experimentos.selection-mode .experiment .stats{display:none}
       #experimentos.selection-mode .grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
       #experimentos.experiment-focused .grid-3{grid-template-columns:minmax(0,1fr);max-width:900px;margin:0 auto}
@@ -130,7 +145,8 @@
       @media(max-width:950px){#experimentos.selection-mode .grid-3{grid-template-columns:1fr 1fr}}
       @media(max-width:600px){
         .experiment-workspace-header{align-items:flex-start;flex-direction:column}
-        .experiment-workspace-header .secondary{width:100%}
+        .workspace-navigation{width:100%;display:grid;grid-template-columns:1fr}
+        .workspace-navigation a{width:100%;text-align:center}
         .workspace-title{align-items:flex-start}
         .workspace-title h2{font-size:1.35rem}
         #experimentos.selection-mode .grid-3,#experimentos.experiment-focused .grid-3{grid-template-columns:1fr;max-width:none}
@@ -148,11 +164,13 @@
 
     if (!key) {
       section.classList.add('selection-mode');
+      section.classList.remove('experiment-focused');
       cards.forEach((card) => { card.hidden = false; });
       return;
     }
 
     section.classList.add('experiment-focused');
+    section.classList.remove('selection-mode');
     cards.forEach((card) => { card.hidden = cardKey(card) !== key; });
     ['inicio', 'contexto', 'dados'].forEach((id) => {
       const element = document.getElementById(id);
@@ -169,9 +187,6 @@
     const form = document.getElementById('grupoForm');
     if (!id || !form) return;
 
-    // Depois que o grupo existe, não há novo cadastro dentro do laboratório.
-    // Escola, turma e participantes permanecem persistidos no grupo e entram
-    // automaticamente na identificação/relatório quando necessário.
     form.hidden = true;
     form.setAttribute('aria-hidden', 'true');
 
