@@ -1,241 +1,29 @@
 (() => {
   'use strict';
-
-  const EXPERIMENTS = {
-    queda: { title: 'Queda Livre', icon: '◉' },
-    pendulo: { title: 'Pêndulo Simples', icon: '↻' },
-    plano: { title: 'Plano Inclinado', icon: '▱' }
-  };
-
-  function participantInputs() {
-    const form = document.getElementById('grupoForm');
-    if (!form) return [];
-    const inputs = [...form.querySelectorAll('input')];
-    const found = [];
-    for (let i = 1; i <= 5; i += 1) {
-      let input = form.querySelector(`[name="nome${i}"]`);
-      if (!input) input = inputs.find((candidate) => String(candidate.getAttribute('placeholder') || '').trim() === `Participante ${i}`);
-      if (input) { input.name = `nome${i}`; found.push(input); }
-    }
-    return found;
+  const EXPERIMENTS={queda:{title:'Queda Livre',icon:'◉'},pendulo:{title:'Pêndulo Simples',icon:'↻'},plano:{title:'Plano Inclinado',icon:'▱'}};
+  const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+  const groupId=()=>new URLSearchParams(location.search).get('grupo_id')||'';
+  const key=()=>{const k=new URLSearchParams(location.search).get('experimento')||'';return EXPERIMENTS[k]?k:''};
+  function inputs(){const f=$('#grupoForm');if(!f)return[];return [1,2,3,4,5].map(i=>f.querySelector(`[name="nome${i}"]`)||$$('input',f).find(x=>(x.placeholder||'').trim()===`Participante ${i}`)).filter(Boolean)}
+  function cardKey(c){const a=c.querySelector('form[action]')?.getAttribute('action')||'';return a==='/queda-livre'?'queda':a==='/pendulo'?'pendulo':a==='/plano'?'plano':''}
+  function expUrl(k){const p=new URLSearchParams({experimento:k});if(groupId())p.set('grupo_id',groupId());return `/?${p}#experimentos`}
+  function cards(){return $$('#experimentos .experiment')}
+  function addOpen(){cards().forEach(c=>{const k=cardKey(c);if(!k||c.dataset.navReady)return;c.dataset.experiment=k;const h=$('h3',c);if(h){h.tabIndex=0;h.setAttribute('role','link');h.addEventListener('click',()=>location.href=expUrl(k));h.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();location.href=expUrl(k)}})}const a=document.createElement('a');a.className='secondary experiment-open';a.href=expUrl(k);a.textContent='Abrir experimento';const p=$('p',c);p?p.insertAdjacentElement('afterend',a):c.appendChild(a);c.dataset.navReady='true'})}
+  function context(){const f=$('#grupoForm');const v=n=>f?.querySelector(`[name="${n}"]`)?.value?.trim()||'';return{escola:v('escola'),rede:v('rede'),municipio:v('municipio'),estado:v('estado'),ano:v('ano_letivo'),serie:v('serie'),turma:v('turma'),turno:v('turno'),componente:v('componente_curricular'),professor:v('professor_responsavel'),grupo:v('codigo_grupo'),participantes:inputs().map(x=>x.value.trim()).filter(Boolean)}}
+  const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+  function printReport(k){
+    const c=context(),card=cards().find(x=>cardKey(x)===k);if(!card)return;
+    const printOnly=document.createElement('section');printOnly.id='fisica-print-report';printOnly.innerHTML=`<div class="print-head"><h1>Física Web — Relatório Experimental</h1><h2>${esc(EXPERIMENTS[k].title)}</h2></div><section><h3>Identificação</h3><div class="print-grid"><div><b>Escola</b>${esc(c.escola||'Não informada')}</div><div><b>Rede</b>${esc(c.rede||'Não informada')}</div><div><b>Município / UF</b>${esc([c.municipio,c.estado].filter(Boolean).join(' / ')||'Não informados')}</div><div><b>Ano letivo</b>${esc(c.ano||'Não informado')}</div><div><b>Série / Turma</b>${esc([c.serie,c.turma].filter(Boolean).join(' · ')||'Não informadas')}</div><div><b>Grupo</b>${esc(c.grupo||'Não informado')}</div><div><b>Professor</b>${esc(c.professor||'Não informado')}</div><div><b>Participantes</b>${esc(c.participantes.join(', ')||'Não informados')}</div></div></section>`;
+    const clone=card.cloneNode(true);clone.querySelectorAll('form,.experiment-open,button').forEach(x=>x.remove());const data=document.createElement('section');data.innerHTML='<h3>Resultados e dados coletados</h3>';data.appendChild(clone);printOnly.appendChild(data);
+    const style=document.createElement('style');style.id='fisica-print-style';style.textContent=`#fisica-print-report{display:none}@media print{body>*{display:none!important}#fisica-print-report{display:block!important;font-family:Arial,sans-serif;color:#17324d;padding:20px}#fisica-print-report .print-head{background:#0A3158;color:#fff;padding:18px 22px;margin-bottom:18px;border-radius:8px}#fisica-print-report h1{margin:0;font-size:22px}#fisica-print-report h2{margin:4px 0 0;font-size:16px}#fisica-print-report h3{color:#0A3158;border-bottom:2px solid #d9e3ec;padding-bottom:5px;margin-top:18px}.print-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.print-grid>div{border:1px solid #d9e3ec;padding:7px;border-radius:6px;font-size:11px}.print-grid b{display:block;color:#60758a;font-size:9px;text-transform:uppercase;margin-bottom:2px}.print-head+section{margin-bottom:12px}#fisica-print-report .card{box-shadow:none;border:1px solid #d9e3ec;padding:12px}}`;
+    document.head.appendChild(style);document.body.appendChild(printOnly);window.print();setTimeout(()=>{printOnly.remove();style.remove()},1200);
   }
-
-  function groupId() { return new URLSearchParams(window.location.search).get('grupo_id') || ''; }
-
-  function experimentKey() {
-    const key = new URLSearchParams(window.location.search).get('experimento') || '';
-    return Object.prototype.hasOwnProperty.call(EXPERIMENTS, key) ? key : '';
-  }
-
-  function experimentCards() { return [...document.querySelectorAll('#experimentos .experiment')]; }
-
-  function cardKey(card) {
-    const form = card.querySelector('form[action]');
-    if (!form) return '';
-    const action = form.getAttribute('action') || '';
-    if (action === '/queda-livre') return 'queda';
-    if (action === '/pendulo') return 'pendulo';
-    if (action === '/plano') return 'plano';
-    return '';
-  }
-
-  function experimentUrl(key) {
-    const params = new URLSearchParams();
-    const id = groupId();
-    if (id) params.set('grupo_id', id);
-    params.set('experimento', key);
-    return `/?${params.toString()}#experimentos`;
-  }
-
-  function reportUrl(key) {
-    const id = groupId();
-    return id
-      ? `/relatorio/${encodeURIComponent(key)}?grupo_id=${encodeURIComponent(id)}`
-      : `/relatorio/${encodeURIComponent(key)}`;
-  }
-
-  function addOpenButtons() {
-    experimentCards().forEach((card) => {
-      const key = cardKey(card);
-      if (!key) return;
-
-      card.dataset.experiment = key;
-
-      if (card.dataset.experimentNavigationReady === 'true') return;
-
-      const title = card.querySelector('h3');
-      if (title) {
-        title.setAttribute('role', 'link');
-        title.setAttribute('tabindex', '0');
-        title.setAttribute('aria-label', `Abrir experimento ${EXPERIMENTS[key].title}`);
-        title.addEventListener('click', () => { window.location.href = experimentUrl(key); });
-        title.addEventListener('keydown', (event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            window.location.href = experimentUrl(key);
-          }
-        });
-      }
-
-      const button = document.createElement('a');
-      button.className = 'secondary experiment-open';
-      button.href = experimentUrl(key);
-      button.textContent = 'Abrir experimento';
-      const description = card.querySelector('p');
-      if (description) description.insertAdjacentElement('afterend', button);
-      else card.appendChild(button);
-
-      card.dataset.experimentNavigationReady = 'true';
-    });
-  }
-
-  function carregarAnaliseCientifica() {
-    if (!experimentKey()) return;
-    if (document.querySelector('script[data-fisica-scientific-analysis]')) return;
-    const script = document.createElement('script');
-    script.src = '/static/scientific-analysis.js?v=20260818';
-    script.dataset.fisicaScientificAnalysis = '1';
-    document.head.appendChild(script);
-  }
-
-  function createWorkspaceHeader(key) {
-    const section = document.getElementById('experimentos');
-    if (!section || section.querySelector('.experiment-workspace-header')) return;
-    const head = section.querySelector('.section-head');
-    if (!head) return;
-    const id = groupId();
-    const backUrl = id ? `/?grupo_id=${encodeURIComponent(id)}#experimentos` : '/#experimentos';
-    const header = document.createElement('div');
-    header.className = 'experiment-workspace-header';
-    header.innerHTML = `
-      <div class="workspace-navigation">
-        <a class="secondary" href="${backUrl}">← Voltar aos experimentos</a>
-        <a class="primary workspace-report" href="${reportUrl(key)}" target="_blank" rel="noopener">Gerar / imprimir relatório</a>
-      </div>
-      <div class="workspace-title">
-        <span class="workspace-icon" aria-hidden="true">${EXPERIMENTS[key].icon}</span>
-        <div><div class="eyebrow">Laboratório individual</div><h2>${EXPERIMENTS[key].title}</h2><p>Registre, analise e gere o relatório somente deste experimento.</p></div>
-      </div>`;
-    head.replaceWith(header);
-  }
-
-  function addWorkspaceStyles() {
-    if (document.getElementById('experiment-workspace-styles')) return;
-    const style = document.createElement('style');
-    style.id = 'experiment-workspace-styles';
-    style.textContent = `
-      .experiment h3[role="link"]{cursor:pointer}
-      .experiment-open{display:flex;margin-top:12px;width:100%}
-      .experiment-workspace-header{display:flex;gap:16px;align-items:center;margin-bottom:14px;padding:4px 0;flex-wrap:wrap}
-      .workspace-navigation{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-      .workspace-navigation .secondary,.workspace-navigation .primary{min-height:42px}
-      .workspace-report{background:#0A3158;color:#fff;text-decoration:none}
-      .workspace-report:hover,.workspace-report:focus{background:#082746;color:#fff}
-      .workspace-title{display:flex;gap:12px;align-items:center;min-width:240px}
-      .workspace-title h2{margin:2px 0 2px;font-size:1.55rem;color:#173b59}
-      .workspace-title p{margin:0;color:#536b80;font-size:.9rem}
-      .workspace-icon{display:grid;place-items:center;width:48px;height:48px;border-radius:12px;background:#0A3158;color:#fff;font-size:1.35rem;font-weight:900}
-      #experimentos.selection-mode .experiment form,#experimentos.selection-mode .experiment .stats{display:none}
-      #experimentos.selection-mode .grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
-      #experimentos.experiment-focused .grid-3{grid-template-columns:minmax(0,1fr);max-width:900px;margin:0 auto}
-      #experimentos.experiment-focused .experiment{width:100%}
-      #experimentos.experiment-focused .experiment-open{display:none}
-      #experimentos.experiment-focused .experiment{box-shadow:0 8px 28px rgba(28,67,101,.10)}
-      .group-context-saved{margin-top:12px;padding:11px 13px;border:1px solid #c8dceb;border-radius:10px;background:#f5f9fd;color:#536b80;font-size:.9rem;line-height:1.45}
-      @media(max-width:950px){#experimentos.selection-mode .grid-3{grid-template-columns:1fr 1fr}}
-      @media(max-width:600px){
-        .experiment-workspace-header{align-items:flex-start;flex-direction:column}
-        .workspace-navigation{width:100%;display:grid;grid-template-columns:1fr}
-        .workspace-navigation a{width:100%;text-align:center}
-        .workspace-title{align-items:flex-start}
-        .workspace-title h2{font-size:1.35rem}
-        #experimentos.selection-mode .grid-3,#experimentos.experiment-focused .grid-3{grid-template-columns:1fr;max-width:none}
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  function isolateExperimentView() {
-    const key = experimentKey();
-    const section = document.getElementById('experimentos');
-    const cards = experimentCards();
-    if (!section || !cards.length) return;
-    addWorkspaceStyles();
-
-    if (!key) {
-      section.classList.add('selection-mode');
-      section.classList.remove('experiment-focused');
-      cards.forEach((card) => { card.hidden = false; });
-      return;
-    }
-
-    section.classList.add('experiment-focused');
-    section.classList.remove('selection-mode');
-    cards.forEach((card) => { card.hidden = cardKey(card) !== key; });
-    ['inicio', 'contexto', 'dados'].forEach((id) => {
-      const element = document.getElementById(id);
-      if (element) element.hidden = true;
-    });
-    const access = document.querySelector('.access');
-    if (access) access.hidden = true;
-    createWorkspaceHeader(key);
-    requestAnimationFrame(() => section.scrollIntoView({ block: 'start', behavior: 'auto' }));
-  }
-
-  function prepareExistingGroupForm() {
-    const id = groupId();
-    const form = document.getElementById('grupoForm');
-    if (!id || !form) return;
-
-    form.hidden = true;
-    form.setAttribute('aria-hidden', 'true');
-
-    let hidden = form.querySelector('[name="grupo_id"]');
-    if (!hidden) {
-      hidden = document.createElement('input');
-      hidden.type = 'hidden';
-      hidden.name = 'grupo_id';
-      form.appendChild(hidden);
-    }
-    hidden.value = id;
-    form.action = '/salvar-participantes';
-
-    const summary = document.querySelector('#contexto .status');
-    if (summary && !summary.dataset.groupSummaryReady) {
-      const text = summary.textContent || '';
-      const match = text.match(/([A-Z0-9]+-[A-Z0-9]+)/i);
-      summary.innerHTML = `<strong>✓ Grupo ativo</strong><br>${match ? `Código: ${match[1]}` : 'Dados do grupo salvos e vinculados aos registros.'}`;
-      summary.classList.add('group-context-saved');
-      summary.dataset.groupSummaryReady = 'true';
-    }
-  }
-
-  async function loadParticipants() {
-    const id = groupId();
-    const inputs = participantInputs();
-    if (!id || !inputs.length) return;
-    try {
-      const response = await fetch(`/api/grupo/${encodeURIComponent(id)}/participantes`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
-      if (!response.ok) return;
-      const data = await response.json();
-      const participantes = Array.isArray(data.participantes) ? data.participantes : [];
-      participantes.forEach((participante, index) => {
-        if (inputs[index] && participante && participante.nome) inputs[index].value = participante.nome;
-      });
-    } catch (_) {
-      // A página continua utilizável mesmo se a recuperação automática falhar.
-    }
-  }
-
-  function run() {
-    participantInputs();
-    prepareExistingGroupForm();
-    addOpenButtons();
-    isolateExperimentView();
-    carregarAnaliseCientifica();
-    loadParticipants();
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run, { once: true });
-  else run();
+  function workspace(k){const s=$('#experimentos');if(!s||s.querySelector('.experiment-workspace-header'))return;const head=$('.section-head',s);if(!head)return;const back=groupId()?`/?grupo_id=${encodeURIComponent(groupId())}#experimentos`:'/#experimentos';const h=document.createElement('div');h.className='experiment-workspace-header';h.innerHTML=`<div class="workspace-navigation"><a class="secondary" href="${back}">← Voltar aos experimentos</a><button type="button" class="primary workspace-report">Imprimir relatório</button></div><div class="workspace-title"><span class="workspace-icon">${EXPERIMENTS[k].icon}</span><div><div class="eyebrow">Laboratório individual</div><h2>${EXPERIMENTS[k].title}</h2><p>Registre, analise e imprima o relatório somente deste experimento.</p></div></div>`;head.replaceWith(h);$('.workspace-report',h).addEventListener('click',()=>printReport(k))}
+  function styles(){if($('#experiment-workspace-styles'))return;const s=document.createElement('style');s.id='experiment-workspace-styles';s.textContent=`.experiment h3[role=link]{cursor:pointer}.experiment-open{display:flex;margin-top:12px;width:100%}.experiment-workspace-header{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding:4px 0}.workspace-navigation{display:flex;gap:8px;flex-wrap:wrap}.workspace-navigation button,.workspace-navigation a{min-height:42px}.workspace-report{background:#0A3158;color:#fff;border:0}.workspace-title{display:flex;gap:12px;align-items:center}.workspace-title h2{margin:2px 0;font-size:1.55rem;color:#173b59}.workspace-title p{margin:0;color:#536b80;font-size:.9rem}.workspace-icon{display:grid;place-items:center;width:48px;height:48px;border-radius:12px;background:#0A3158;color:#fff;font-size:1.35rem;font-weight:900}#experimentos.selection-mode .experiment form,#experimentos.selection-mode .experiment .stats{display:none}#experimentos.experiment-focused .grid-3{grid-template-columns:1fr;max-width:900px;margin:0 auto}#experimentos.experiment-focused .experiment-open{display:none}@media(max-width:600px){.experiment-workspace-header{align-items:flex-start;flex-direction:column}.workspace-navigation{width:100%;display:grid;grid-template-columns:1fr}.workspace-navigation>*{width:100%;text-align:center}.workspace-title{align-items:flex-start}.workspace-title h2{font-size:1.35rem}}`;
+    document.head.appendChild(s)}
+  function isolate(){const k=key(),s=$('#experimentos'),cs=cards();if(!s||!cs.length)return;styles();if(!k){s.classList.add('selection-mode');s.classList.remove('experiment-focused');cs.forEach(c=>c.hidden=false);return}s.classList.add('experiment-focused');s.classList.remove('selection-mode');cs.forEach(c=>c.hidden=cardKey(c)!==k);['inicio','contexto','dados'].forEach(id=>{const e=$(`#${id}`);if(e)e.hidden=true});const a=$('.access');if(a)a.hidden=true;workspace(k);requestAnimationFrame(()=>s.scrollIntoView({block:'start',behavior:'auto'}))}
+  function existingGroup(){const id=groupId(),f=$('#grupoForm');if(!id||!f)return;f.hidden=true;f.setAttribute('aria-hidden','true');let h=f.querySelector('[name="grupo_id"]');if(!h){h=document.createElement('input');h.type='hidden';h.name='grupo_id';f.appendChild(h)}h.value=id;f.action='/salvar-participantes';const st=$('#contexto .status');if(st&&!st.dataset.ready){const m=(st.textContent||'').match(/([A-Z0-9]+-[A-Z0-9]+)/i);st.innerHTML=`<strong>✓ Grupo ativo</strong><br>${m?`Código: ${m[1]}`:'Dados do grupo salvos e vinculados aos registros.'}`;st.classList.add('group-context-saved');st.dataset.ready='true'}}
+  async function loadParticipants(){const id=groupId(),is=inputs();if(!id||!is.length)return;try{const r=await fetch(`/api/grupo/${encodeURIComponent(id)}/participantes`,{credentials:'same-origin',headers:{Accept:'application/json'}});if(!r.ok)return;const d=await r.json();(d.participantes||[]).forEach((p,i)=>{if(is[i]&&p?.nome)is[i].value=p.nome})}catch(_){} }
+  function run(){inputs();existingGroup();addOpen();isolate();loadParticipants()}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();
 })();
