@@ -13,6 +13,20 @@
     return String(value || '').replace(/\s+/g, ' ').trim();
   }
 
+  function installStyles() {
+    if (document.getElementById('fw-a11y-science-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'fw-a11y-science-styles';
+    style.textContent = `
+      .${HIDDEN}{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+      .access{background:#fff!important;border:1px solid #c9d9e8!important;border-radius:16px!important;padding:18px 20px!important;box-shadow:0 5px 18px rgba(28,67,101,.07)!important}
+      .access-actions{align-items:center}
+      .access-actions a,.access-actions button{min-height:42px}
+      @media(max-width:600px){.access{padding:15px!important}.access-actions{display:grid!important;grid-template-columns:1fr!important;gap:8px!important}.access-actions a,.access-actions button{width:100%!important}}
+    `;
+    document.head.appendChild(style);
+  }
+
   function nearestHeading(el) {
     const container = el.closest('section,article,main,form,fieldset,div') || document.body;
     const heading = container.querySelector('h1,h2,h3,h4,legend');
@@ -43,14 +57,12 @@
         cap.textContent = `Tabela de dados: ${firstHeading}.`;
         table.insertBefore(cap, table.firstChild);
       }
-
       const headers = table.querySelectorAll('thead th');
       headers.forEach(th => th.setAttribute('scope', 'col'));
       if (!headers.length) {
         const firstRow = table.querySelector('tr');
         firstRow?.querySelectorAll('th').forEach(th => th.setAttribute('scope', 'col'));
       }
-
       const rows = table.querySelectorAll('tbody tr');
       const cells = table.querySelectorAll('tbody td');
       if (cells.length && !table.hasAttribute('aria-describedby')) {
@@ -67,10 +79,7 @@
       if (!visible(chart)) return;
       const heading = nearestHeading(chart);
       chart.setAttribute('role', 'img');
-      if (!chart.getAttribute('aria-label')) {
-        chart.setAttribute('aria-label', `Gráfico ou visualização científica: ${heading}.`);
-      }
-
+      if (!chart.getAttribute('aria-label')) chart.setAttribute('aria-label', `Gráfico ou visualização científica: ${heading}.`);
       const table = chart.closest('section,article,main,div')?.querySelector('table');
       if (table) {
         const id = table.id || `fw-chart-data-${index}`;
@@ -91,11 +100,7 @@
       if (!label) label = text(field.closest('label')?.innerText);
       if (!label) label = text(field.getAttribute('aria-label') || field.placeholder || field.name);
       if (!label) return;
-
-      if (!field.getAttribute('aria-label') && !field.getAttribute('aria-labelledby')) {
-        field.setAttribute('aria-label', label);
-      }
-
+      if (!field.getAttribute('aria-label') && !field.getAttribute('aria-labelledby')) field.setAttribute('aria-label', label);
       const unit = text(field.closest('.field,.form-group,.input-group,.control')?.querySelector('.unit,.unidade,[data-unit]')?.innerText);
       if (unit && !field.getAttribute('aria-describedby')) {
         const id = hiddenDescription(`fw-field-unit-${index}-${Date.now()}`, `Unidade: ${unit}.`);
@@ -113,6 +118,7 @@
   }
 
   function run() {
+    installStyles();
     makeTablesAccessible();
     makeChartsAccessible();
     makeFormsAccessible();
