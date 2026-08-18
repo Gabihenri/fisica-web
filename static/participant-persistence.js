@@ -50,7 +50,14 @@
   function addOpenButtons() {
     experimentCards().forEach((card) => {
       const key = cardKey(card);
-      if (!key || card.dataset.experimentNavigationReady === 'true') return;
+      if (!key) return;
+
+      // O módulo de análise científica identifica cada laboratório por este atributo.
+      // A nova interface passou a criar os links dinamicamente e o atributo deixou
+      // de existir no HTML original; restaurá-lo aqui mantém os dois fluxos compatíveis.
+      card.dataset.experiment = key;
+
+      if (card.dataset.experimentNavigationReady === 'true') return;
 
       const title = card.querySelector('h3');
       if (title) {
@@ -76,6 +83,15 @@
 
       card.dataset.experimentNavigationReady = 'true';
     });
+  }
+
+  function carregarAnaliseCientifica() {
+    if (!experimentKey()) return;
+    if (document.querySelector('script[data-fisica-scientific-analysis]')) return;
+    const script = document.createElement('script');
+    script.src = '/static/scientific-analysis.js?v=20260818';
+    script.dataset.fisicaScientificAnalysis = '1';
+    document.head.appendChild(script);
   }
 
   function createWorkspaceHeader(key) {
@@ -201,6 +217,7 @@
     prepareExistingGroupForm();
     addOpenButtons();
     isolateExperimentView();
+    carregarAnaliseCientifica();
     loadParticipants();
   }
 
