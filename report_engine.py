@@ -8,6 +8,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from fpdf import FPDF
 
+from db import get_supabase_client
 from scientific_engine import GRAVIDADE_REFERENCIA, analisar_experimento
 
 
@@ -17,6 +18,7 @@ SUBSTITUICOES = {
 }
 
 GRAFICO_AZUL_ESCURO = "#0A3158"
+TIPOS_EXPERIMENTO = {"queda": "queda_livre", "pendulo": "pendulo_simples", "plano": "plano_inclinado"}
 
 
 def texto_pdf(valor: Any) -> str:
@@ -36,22 +38,18 @@ def _fmt_num(valor: Any, casas: int = 5, sufixo: str = "") -> str:
 
 
 def _grafico_temp(analise: Dict[str, Any]) -> Optional[str]:
-    """Gera o gráfico sem impedir o PDF caso o ambiente gráfico falhe."""
     try:
         modelo = analise.get("modelo") or {}
         pontos = modelo.get("pontos") or []
         if not pontos:
             return None
-
         xs = [float(p[0]) for p in pontos]
         ys = [float(p[1]) for p in pontos]
         arquivo = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
         caminho = arquivo.name
         arquivo.close()
-
         fig, ax = plt.subplots(figsize=(8.5, 4.8))
         ax.scatter(xs, ys, s=48, color=GRAFICO_AZUL_ESCURO, label="Dados experimentais")
-
         reg = modelo.get("regressao")
         if reg and len(xs) >= 2:
             minimo, maximo = min(xs), max(xs)
@@ -60,19 +58,8 @@ def _grafico_temp(analise: Dict[str, Any]) -> Optional[str]:
             inclinacao = float(reg.get("inclinação", 0) or 0)
             intercepto = float(reg.get("intercepto", 0) or 0)
             linha_y = [intercepto + inclinacao * x for x in linha_x]
-            ax.plot(
-                linha_x,
-                linha_y,
-                color=GRAFICO_AZUL_ESCURO,
-                linewidth=2,
-                label=f"Ajuste linear (R2={float(reg.get('r2', 0) or 0):.4f})",
-            )
-
-        ax.set_title(
-            modelo.get("titulo_grafico") or "Resultados experimentais",
-            fontweight="bold",
-            color=GRAFICO_AZUL_ESCURO,
-        )
+            ax.plot(linha_x, linha_y, color=GRAFICO_AZUL_ESCURO, linewidth=2, label=f"Ajuste linear (R2={float(reg.get('r2', 0) or 0):.4f})")
+        ax.set_title(modelo.get("titulo_grafico") or "Resultados experimentais", fontweight="bold", color=GRAFICO_AZUL_ESCURO)
         ax.set_xlabel(modelo.get("eixo_x") or "x", color=GRAFICO_AZUL_ESCURO)
         ax.set_ylabel(modelo.get("eixo_y") or "y", color=GRAFICO_AZUL_ESCURO)
         ax.tick_params(axis="both", colors=GRAFICO_AZUL_ESCURO)
@@ -88,6 +75,36 @@ def _grafico_temp(analise: Dict[str, Any]) -> Optional[str]:
         except Exception:
             pass
         return None
+
+
+def _obter_observacoes(chave: str, contexto: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Carrega as observações persistidas sem alterar o contexto escolar existente."""
+    try:
+        grupo = (contexto or {}).get("grupo") or {}
+        grupo_id = grupo.get("id")
+        tipo = TIPOS_EXPERIMENTO.get(chave)
+        if not grupo_id or not tipo:
+            return []
+        client = get_supabase_client()
+        experimentos = client.table("experimentos").select("id").eq("grupo_id", grupo_id).eq("tipo", tipo).order("created_at", desc=True).limit(1).execute().data or []
+        if not experimentos:
+            return []
+        experimento_id = experimentos[0]["id"]
+        rows = client.table("observacoes_participantes").select("participante_id,observacao,origem,updated_at").eq("grupo_id", grupo_id).eq("experimento_id", experimento_id).order("updated_at").execute().data or []
+        participantes = (contexto or {}).get("participantes") or []
+        por_id = {str(p.get("id")): p for p in participantes if isinstance(p, dict)}
+        resultado = []
+        for row in rows:
+            participante = por_id.get(str(row.get("participante_id")), {})
+            resultado.append({
+                "codigo": participante.get("codigo_participante", ""),
+                "nome": participante.get("nome_exibicao", ""),
+                "observacao": row.get("observacao", ""),
+                "origem": row.get("origem", "escrita"),
+            })
+        return resultado
+    except Exception:
+        return []
 
 
 def _titulo(pdf: FPDF, titulo: str, subtitulo: str) -> None:
@@ -128,20 +145,17 @@ def _tabela_dados(pdf: FPDF, dados: List[Dict[str, Any]]) -> None:
         pdf.set_font("Arial", "", 9)
         pdf.multi_cell(0, 6, "Nenhuma medicao registrada.")
         return
-
     colunas = list(dados[0].keys())
     if not colunas:
         pdf.multi_cell(0, 6, "Nenhuma medicao registrada.")
         return
     largura_util = 186
     largura = max(min(largura_util / max(len(colunas), 1), 48), 24)
-
     pdf.set_font("Arial", "B", 7.5)
     pdf.set_fill_color(237, 244, 251)
     for coluna in colunas:
         pdf.cell(largura, 7, texto_pdf(coluna.replace("_", " ").title())[:22], 1, 0, "C", True)
     pdf.ln()
-
     pdf.set_font("Arial", "", 7.5)
     for linha in dados:
         if pdf.get_y() > 270:
@@ -165,6 +179,7 @@ def gerar_pdf_cientifico(chave: str, titulo_experimento: str, teoria: str, dados
     stats = analise.get("estatisticas") or {}
     modelo = analise.get("modelo") or {}
     caminho_grafico = _grafico_temp(analise)
+    observacoes = _obter_observacoes(chave, contexto)
 
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=14)
@@ -199,57 +214,53 @@ def gerar_pdf_cientifico(chave: str, titulo_experimento: str, teoria: str, dados
         pdf.multi_cell(0, 6, "Ainda nao ha dados suficientes para analise estatistica.")
     else:
         indicadores = [
-            ("Numero de medicoes", n),
-            ("Media de g", _fmt_num(stats.get("media"), 5, " m/s2")),
-            ("Mediana de g", _fmt_num(stats.get("mediana"), 5, " m/s2")),
-            ("Desvio padrao", _fmt_num(stats.get("desvio_padrao"), 5, " m/s2")),
-            ("Erro padrao", _fmt_num(stats.get("erro_padrao"), 5, " m/s2")),
-            ("Minimo / Maximo", f"{_fmt_num(stats.get('minimo'),5)} / {_fmt_num(stats.get('maximo'),5)} m/s2"),
-            ("Valor de referencia", f"{GRAVIDADE_REFERENCIA:.5f} m/s2"),
-            ("Erro percentual", _fmt_num(stats.get("erro_percentual"), 2, "%")),
-            ("Coeficiente de variacao", _fmt_num(stats.get("coeficiente_variacao"), 2, "%")),
-            ("Classificacao", stats.get("qualidade") or "-"),
+            ("Numero de medicoes", n), ("Media de g", _fmt_num(stats.get("media"), 5, " m/s2")),
+            ("Mediana de g", _fmt_num(stats.get("mediana"), 5, " m/s2")), ("Desvio padrao", _fmt_num(stats.get("desvio_padrao"), 5, " m/s2")),
+            ("Erro padrao", _fmt_num(stats.get("erro_padrao"), 5, " m/s2")), ("Minimo / Maximo", f"{_fmt_num(stats.get('minimo'),5)} / {_fmt_num(stats.get('maximo'),5)} m/s2"),
+            ("Valor de referencia", f"{GRAVIDADE_REFERENCIA:.5f} m/s2"), ("Erro percentual", _fmt_num(stats.get("erro_percentual"), 2, "%")),
+            ("Coeficiente de variacao", _fmt_num(stats.get("coeficiente_variacao"), 2, "%")), ("Classificacao", stats.get("qualidade") or "-"),
         ]
         for rotulo, valor in indicadores:
-            pdf.set_font("Arial", "B", 9)
-            pdf.cell(63, 7, texto_pdf(rotulo), 1)
-            pdf.set_font("Arial", "", 9)
-            pdf.cell(123, 7, texto_pdf(valor), 1, 1)
+            pdf.set_font("Arial", "B", 9); pdf.cell(63, 7, texto_pdf(rotulo), 1)
+            pdf.set_font("Arial", "", 9); pdf.cell(123, 7, texto_pdf(valor), 1, 1)
 
     _secao(pdf, 5, "Modelo fisico e grafico")
     pdf.set_font("Arial", "", 9.5)
     pdf.multi_cell(0, 6, texto_pdf(modelo.get("descricao_modelo") or "Analise grafica indisponivel para esta medicao."))
     reg = modelo.get("regressao")
     if reg:
-        pdf.multi_cell(0, 6, texto_pdf(
-            f"Ajuste linear: inclinacao = {float(reg.get('inclinação',0) or 0):.6g}; "
-            f"intercepto = {float(reg.get('intercepto',0) or 0):.6g}; R2 = {float(reg.get('r2',0) or 0):.5f}."
-        ))
+        pdf.multi_cell(0, 6, texto_pdf(f"Ajuste linear: inclinacao = {float(reg.get('inclinação',0) or 0):.6g}; intercepto = {float(reg.get('intercepto',0) or 0):.6g}; R2 = {float(reg.get('r2',0) or 0):.5f}."))
     if modelo.get("gravidade_modelo") is not None:
         pdf.multi_cell(0, 6, texto_pdf(f"Estimativa de g pelo modelo grafico: {_fmt_num(modelo.get('gravidade_modelo'),5)} m/s2."))
     if caminho_grafico and os.path.exists(caminho_grafico):
         try:
-            if pdf.get_y() > 165:
-                pdf.add_page()
-            pdf.ln(3)
-            pdf.image(caminho_grafico, x=15, w=180)
+            if pdf.get_y() > 165: pdf.add_page()
+            pdf.ln(3); pdf.image(caminho_grafico, x=15, w=180)
         except Exception:
-            pdf.ln(2)
-            pdf.set_font("Arial", "I", 8.5)
-            pdf.multi_cell(0, 5, "Grafico nao incorporado ao PDF. Os dados e a analise textual permanecem validos.")
+            pdf.ln(2); pdf.set_font("Arial", "I", 8.5); pdf.multi_cell(0, 5, "Grafico nao incorporado ao PDF. Os dados e a analise textual permanecem validos.")
 
-    _secao(pdf, 6, "Discussao e interpretacao")
+    _secao(pdf, 6, "Observacoes dos participantes")
+    pdf.set_font("Arial", "", 9.5)
+    if observacoes:
+        for item in observacoes:
+            nome = item.get("nome") or item.get("codigo") or "Participante"
+            origem = "voz/transcricao" if item.get("origem") == "voz_transcrita" else "registro escrito"
+            pdf.set_font("Arial", "B", 9.5)
+            pdf.multi_cell(0, 6, texto_pdf(f"{nome} - {origem}"))
+            pdf.set_font("Arial", "", 9.5)
+            pdf.multi_cell(0, 6, texto_pdf(item.get("observacao") or ""))
+            pdf.ln(2)
+    else:
+        pdf.multi_cell(0, 6, "Nenhuma observacao de participante foi registrada para este experimento.")
+
+    _secao(pdf, 7, "Discussao e interpretacao")
     pdf.set_font("Arial", "", 9.5)
     pdf.multi_cell(0, 6, texto_pdf(analise.get("interpretacao") or "Sem interpretacao disponivel."))
 
-    _secao(pdf, 7, "Conclusao e acessibilidade")
+    _secao(pdf, 8, "Conclusao e acessibilidade")
     pdf.set_font("Arial", "", 9.5)
     if n:
-        conclusao = (
-            f"O experimento apresentou media de g igual a {_fmt_num(stats.get('media'),4)} m/s2, "
-            f"com erro percentual de {_fmt_num(stats.get('erro_percentual'),2)}% em relacao ao valor de referencia. "
-            f"A qualidade foi classificada como {stats.get('qualidade') or 'nao classificada'}."
-        )
+        conclusao = f"O experimento apresentou media de g igual a {_fmt_num(stats.get('media'),4)} m/s2, com erro percentual de {_fmt_num(stats.get('erro_percentual'),2)}% em relacao ao valor de referencia. A qualidade foi classificada como {stats.get('qualidade') or 'nao classificada'}."
     else:
         conclusao = "Nao ha dados suficientes para elaborar uma conclusao experimental."
     pdf.multi_cell(0, 6, texto_pdf(conclusao))
@@ -258,19 +269,11 @@ def gerar_pdf_cientifico(chave: str, titulo_experimento: str, teoria: str, dados
     pdf.multi_cell(0, 5, texto_pdf("Este relatorio possui equivalente textual para os principais resultados e deve ser acompanhado pela audiodescricao disponivel na interface do Fisica Web."))
 
     conteudo = pdf.output(dest="S")
-    if isinstance(conteudo, str):
-        conteudo = conteudo.encode("latin-1", "replace")
-    elif isinstance(conteudo, bytearray):
-        conteudo = bytes(conteudo)
-    elif not isinstance(conteudo, bytes):
-        conteudo = bytes(conteudo)
-
-    buffer = io.BytesIO(conteudo)
-    buffer.seek(0)
-
+    if isinstance(conteudo, str): conteudo = conteudo.encode("latin-1", "replace")
+    elif isinstance(conteudo, bytearray): conteudo = bytes(conteudo)
+    elif not isinstance(conteudo, bytes): conteudo = bytes(conteudo)
+    buffer = io.BytesIO(conteudo); buffer.seek(0)
     if caminho_grafico and os.path.exists(caminho_grafico):
-        try:
-            os.remove(caminho_grafico)
-        except OSError:
-            pass
+        try: os.remove(caminho_grafico)
+        except OSError: pass
     return buffer
