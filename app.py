@@ -10,7 +10,7 @@ from supabase import create_client
 from app_core import app
 from ambientes import criar_ambiente_compartilhado, entrar_ambiente_por_codigo, listar_turmas_para_ambiente
 from cadastro_contexto import cadastrar_somente_contexto_escolar
-from db import cadastrar_contexto_escolar, listar_grupos_usuario, obter_contexto_grupo, registrar_perfil_usuario, usuario_tem_acesso_grupo
+from db import cadastrar_contexto_escolar, listar_grupos_usuario, obter_contexto_grupo, registrar_perfil_usuario, salvar_participantes, usuario_tem_acesso_grupo
 from security import current_role
 
 SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "").strip()
@@ -161,6 +161,20 @@ def api_grupo_participantes(grupo_id):
     except PermissionError as exc: return jsonify({"erro": str(exc), "participantes": []}), 403
     except Exception:
         logger.exception("Falha ao carregar participantes do grupo"); return jsonify({"erro": "Não foi possível carregar os participantes.", "participantes": []}), 500
+
+
+@app.route("/salvar-participantes", methods=["POST"])
+def salvar_participantes_grupo():
+    grupo_id = request.form.get("grupo_id", "").strip()
+    if not grupo_id or not usuario_tem_acesso_grupo(session.get("user_id", ""), grupo_id):
+        return render_template("403.html"), 403
+    nomes = [request.form.get(f"nome{i}", "").strip() for i in range(1, 6)]
+    try:
+        salvar_participantes(grupo_id, nomes)
+        return redirect(f"/?grupo_id={grupo_id}#contexto")
+    except Exception:
+        logger.exception("Falha ao salvar participantes do grupo")
+        return "Não foi possível salvar os participantes do grupo.", 500
 
 
 @app.route("/cadastro-escolar", methods=["GET", "POST"])
