@@ -110,6 +110,7 @@
       #experimentos.experiment-focused .experiment{width:100%}
       #experimentos.experiment-focused .experiment-open{display:none}
       #experimentos.experiment-focused .experiment{box-shadow:0 8px 28px rgba(28,67,101,.10)}
+      .group-context-saved{margin-top:12px;padding:11px 13px;border:1px solid #c8dceb;border-radius:10px;background:#f5f9fd;color:#536b80;font-size:.9rem;line-height:1.45}
       @media(max-width:950px){#experimentos.selection-mode .grid-3{grid-template-columns:1fr 1fr}}
       @media(max-width:600px){
         .experiment-workspace-header{align-items:flex-start;flex-direction:column}
@@ -151,6 +152,13 @@
     const id = groupId();
     const form = document.getElementById('grupoForm');
     if (!id || !form) return;
+
+    // Depois que o grupo existe, não há novo cadastro dentro do laboratório.
+    // Escola, turma e participantes permanecem persistidos no grupo e entram
+    // automaticamente na identificação/relatório quando necessário.
+    form.hidden = true;
+    form.setAttribute('aria-hidden', 'true');
+
     let hidden = form.querySelector('[name="grupo_id"]');
     if (!hidden) {
       hidden = document.createElement('input');
@@ -160,19 +168,14 @@
     }
     hidden.value = id;
     form.action = '/salvar-participantes';
-    const contextBlock = form.querySelector('.context-block');
-    if (contextBlock) {
-      contextBlock.style.display = 'none';
-      contextBlock.querySelectorAll('input, select, textarea').forEach((field) => { field.disabled = true; });
-    }
-    const button = form.querySelector('button[type="submit"]');
-    if (button) button.textContent = 'Salvar participantes';
-    const actions = form.querySelector('.actions');
-    if (actions) actions.style.marginTop = '0';
-    const participantsBlock = document.querySelector('.participants')?.closest('.context-block');
-    if (participantsBlock) {
-      const note = participantsBlock.querySelector('.context-note');
-      if (note) note.textContent = 'Os nomes ficam salvos no grupo e disponíveis para os integrantes autorizados.';
+
+    const summary = document.querySelector('#contexto .status');
+    if (summary && !summary.dataset.groupSummaryReady) {
+      const text = summary.textContent || '';
+      const match = text.match(/([A-Z0-9]+-[A-Z0-9]+)/i);
+      summary.innerHTML = `<strong>✓ Grupo ativo</strong><br>${match ? `Código: ${match[1]}` : 'Dados do grupo salvos e vinculados aos registros.'}`;
+      summary.classList.add('group-context-saved');
+      summary.dataset.groupSummaryReady = 'true';
     }
   }
 
