@@ -16,6 +16,8 @@ SUBSTITUICOES = {
     "·": "*", "–": "-", "—": "-", "“": '"', "”": '"', "’": "'",
 }
 
+GRAFICO_AZUL_ESCURO = "#0A3158"
+
 
 def texto_pdf(valor: Any) -> str:
     texto = str(valor if valor is not None else "")
@@ -48,7 +50,7 @@ def _grafico_temp(analise: Dict[str, Any]) -> Optional[str]:
         arquivo.close()
 
         fig, ax = plt.subplots(figsize=(8.5, 4.8))
-        ax.scatter(xs, ys, s=48, label="Dados experimentais")
+        ax.scatter(xs, ys, s=48, color=GRAFICO_AZUL_ESCURO, label="Dados experimentais")
 
         reg = modelo.get("regressao")
         if reg and len(xs) >= 2:
@@ -58,11 +60,22 @@ def _grafico_temp(analise: Dict[str, Any]) -> Optional[str]:
             inclinacao = float(reg.get("inclinação", 0) or 0)
             intercepto = float(reg.get("intercepto", 0) or 0)
             linha_y = [intercepto + inclinacao * x for x in linha_x]
-            ax.plot(linha_x, linha_y, linewidth=2, label=f"Ajuste linear (R2={float(reg.get('r2', 0) or 0):.4f})")
+            ax.plot(
+                linha_x,
+                linha_y,
+                color=GRAFICO_AZUL_ESCURO,
+                linewidth=2,
+                label=f"Ajuste linear (R2={float(reg.get('r2', 0) or 0):.4f})",
+            )
 
-        ax.set_title(modelo.get("titulo_grafico") or "Resultados experimentais", fontweight="bold")
-        ax.set_xlabel(modelo.get("eixo_x") or "x")
-        ax.set_ylabel(modelo.get("eixo_y") or "y")
+        ax.set_title(
+            modelo.get("titulo_grafico") or "Resultados experimentais",
+            fontweight="bold",
+            color=GRAFICO_AZUL_ESCURO,
+        )
+        ax.set_xlabel(modelo.get("eixo_x") or "x", color=GRAFICO_AZUL_ESCURO)
+        ax.set_ylabel(modelo.get("eixo_y") or "y", color=GRAFICO_AZUL_ESCURO)
+        ax.tick_params(axis="both", colors=GRAFICO_AZUL_ESCURO)
         ax.grid(True, alpha=0.25)
         ax.legend(loc="best", fontsize=9)
         fig.tight_layout()
