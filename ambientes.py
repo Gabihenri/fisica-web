@@ -3,6 +3,8 @@ import secrets
 import string
 from typing import Any, Dict, List
 
+from flask import has_request_context, request
+
 from db import get_supabase_client, salvar_participantes
 from security import current_role, validate_environment_code, validate_text, validate_uuid
 
@@ -41,6 +43,11 @@ def criar_ambiente_compartilhado(
     if experimento not in tipos:
         raise ValueError("Experimento inválido.")
 
+    # A criação do grupo é o único ponto de cadastro dos participantes.
+    # Mantém compatibilidade com chamadas existentes e também permite que o
+    # formulário /ambiente envie nome1...nome5 sem duplicar cadastros depois.
+    if participantes is None and has_request_context():
+        participantes = [request.form.get(f"nome{i}", "") for i in range(1, 6)]
     nomes = [_texto(nome) for nome in (participantes or []) if _texto(nome)][:5]
 
     client = get_supabase_client()
