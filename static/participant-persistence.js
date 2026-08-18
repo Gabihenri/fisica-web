@@ -21,10 +21,29 @@
   function workspace(k){const s=$('#experimentos');if(!s||s.querySelector('.experiment-workspace-header'))return;const head=$('.section-head',s);if(!head)return;const back=groupId()?`/?grupo_id=${encodeURIComponent(groupId())}#experimentos`:'/#experimentos';const h=document.createElement('div');h.className='experiment-workspace-header';h.innerHTML=`<div class="workspace-navigation"><a class="secondary" href="${back}">← Voltar aos experimentos</a><button type="button" class="primary workspace-report">Imprimir relatório</button></div><div class="workspace-title"><span class="workspace-icon">${EXPERIMENTS[k].icon}</span><div><div class="eyebrow">Laboratório individual</div><h2>${EXPERIMENTS[k].title}</h2><p>Registre, analise e imprima o relatório somente deste experimento.</p></div></div>`;head.replaceWith(h);$('.workspace-report',h).addEventListener('click',()=>printReport(k))}
   function styles(){if($('#experiment-workspace-styles'))return;const s=document.createElement('style');s.id='experiment-workspace-styles';s.textContent=`.experiment h3[role=link]{cursor:pointer}.experiment-open{display:flex;margin-top:12px;width:100%}.experiment-workspace-header{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding:4px 0}.workspace-navigation{display:flex;gap:8px;flex-wrap:wrap}.workspace-navigation button,.workspace-navigation a{min-height:42px}.workspace-report{background:#0A3158;color:#fff;border:0}.workspace-title{display:flex;gap:12px;align-items:center}.workspace-title h2{margin:2px 0;font-size:1.55rem;color:#173b59}.workspace-title p{margin:0;color:#536b80;font-size:.9rem}.workspace-icon{display:grid;place-items:center;width:48px;height:48px;border-radius:12px;background:#0A3158;color:#fff;font-size:1.35rem;font-weight:900}#experimentos.selection-mode .experiment form,#experimentos.selection-mode .experiment .stats{display:none}#experimentos.experiment-focused .grid-3{grid-template-columns:1fr;max-width:900px;margin:0 auto}#experimentos.experiment-focused .experiment-open{display:none}@media(max-width:600px){.experiment-workspace-header{align-items:flex-start;flex-direction:column}.workspace-navigation{width:100%;display:grid;grid-template-columns:1fr}.workspace-navigation>*{width:100%;text-align:center}.workspace-title{align-items:flex-start}.workspace-title h2{font-size:1.35rem}}`;
     document.head.appendChild(s)}
+  function organizeSoundLab(){
+    if(key()) return;
+    const s=$('#experimentos');
+    if(!s || s.querySelector('.sound-lab-card')) return;
+    const candidates=$$('.access-actions a, .access-actions button, .access a, .access button');
+    const source=candidates.find(el=>(el.textContent||'').toLowerCase().includes('laboratório do som'));
+    const grid=$('.grid-3',s);
+    if(!grid) return;
+    const card=document.createElement('article');
+    card.className='card experiment sound-lab-card';
+    card.innerHTML=`<div class="icon" aria-hidden="true">🔊</div><h3>Laboratório do Som</h3><p>Explore frequência, amplitude e características das ondas sonoras em um experimento de Física.</p><a class="secondary experiment-open" href="/laboratorio/som">Abrir experimento</a>`;
+    grid.appendChild(card);
+    if(source){source.remove();}
+    const access=$('.access');
+    if(access){
+      const actions=$('.access-actions',access);
+      if(actions && !actions.children.length) actions.remove();
+    }
+  }
   function isolate(){const k=key(),s=$('#experimentos'),cs=cards();if(!s||!cs.length)return;styles();if(!k){s.classList.add('selection-mode');s.classList.remove('experiment-focused');cs.forEach(c=>c.hidden=false);return}s.classList.add('experiment-focused');s.classList.remove('selection-mode');cs.forEach(c=>c.hidden=cardKey(c)!==k);['inicio','contexto','dados'].forEach(id=>{const e=$(`#${id}`);if(e)e.hidden=true});const a=$('.access');if(a)a.hidden=true;workspace(k);requestAnimationFrame(()=>s.scrollIntoView({block:'start',behavior:'auto'}))}
   function existingGroup(){const id=groupId(),f=$('#grupoForm');if(!id||!f)return;f.hidden=true;f.setAttribute('aria-hidden','true');let h=f.querySelector('[name="grupo_id"]');if(!h){h=document.createElement('input');h.type='hidden';h.name='grupo_id';f.appendChild(h)}h.value=id;f.action='/salvar-participantes';const st=$('#contexto .status');if(st&&!st.dataset.ready){const m=(st.textContent||'').match(/([A-Z0-9]+-[A-Z0-9]+)/i);st.innerHTML=`<strong>✓ Grupo ativo</strong><br>${m?`Código: ${m[1]}`:'Dados do grupo salvos e vinculados aos registros.'}`;st.classList.add('group-context-saved');st.dataset.ready='true'}}
   async function loadParticipants(){const id=groupId(),is=inputs();if(!id||!is.length)return;try{const r=await fetch(`/api/grupo/${encodeURIComponent(id)}/participantes`,{credentials:'same-origin',headers:{Accept:'application/json'}});if(!r.ok)return;const d=await r.json();(d.participantes||[]).forEach((p,i)=>{if(is[i]&&p?.nome)is[i].value=p.nome})}catch(_){} }
-  function run(){inputs();existingGroup();addOpen();isolate();loadParticipants();loadScientificAnalysis()}
+  function run(){inputs();existingGroup();addOpen();organizeSoundLab();isolate();loadParticipants();loadScientificAnalysis()}
   function loadScientificAnalysis(){
     if(!key() || document.querySelector('script[data-fisica-scientific-analysis]')) return;
     const script=document.createElement('script');
