@@ -198,7 +198,11 @@ def ambiente():
             acao = request.form.get("acao", "").strip().lower()
             if acao == "criar":
                 if role not in {"professor", "admin_instituicao", "admin_plataforma"}: return render_template("403.html"), 403
-                criado = criar_ambiente_compartilhado(user_id=uid, titulo=request.form.get("titulo", ""), experimento=request.form.get("experimento", ""), turma_id=request.form.get("turma_id", ""), professor_responsavel=session.get("user_email", "")); mensagem = f"Ambiente criado. Código: {criado['codigo']}"
+                criado = criar_ambiente_compartilhado(user_id=uid, titulo=request.form.get("titulo", ""), experimento=request.form.get("experimento", ""), turma_id=request.form.get("turma_id", ""), professor_responsavel=session.get("user_email", ""))
+                # O ambiente já foi criado e o experimento já está vinculado ao grupo.
+                # A próxima etapa deve ser o próprio ambiente experimental, onde o
+                # professor informa os participantes sem voltar à tela de criação.
+                return redirect(f"/?grupo_id={criado['grupo']['id']}&experimento={request.form.get('experimento', '').strip().lower()}#contexto")
             elif acao == "entrar":
                 resultado = entrar_ambiente_por_codigo(uid, request.form.get("codigo", "")); return redirect(f"/?grupo_id={resultado['grupo']['id']}#contexto")
             else: erro = "Escolha criar ou entrar em um ambiente."
