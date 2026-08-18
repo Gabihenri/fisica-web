@@ -1,9 +1,9 @@
 import re
 import secrets
 import string
-from typing import Any, Dict
+from typing import Any, Dict, List
 
-from db import get_supabase_client
+from db import get_supabase_client, salvar_participantes
 from security import current_role, validate_environment_code, validate_text, validate_uuid
 
 CODIGO_ALFABETO = string.ascii_uppercase + string.digits
@@ -17,7 +17,14 @@ def gerar_codigo_ambiente() -> str:
     return "FIS-" + "".join(secrets.choice(CODIGO_ALFABETO) for _ in range(4))
 
 
-def criar_ambiente_compartilhado(user_id: str, titulo: str, experimento: str, turma_id: str = "", professor_responsavel: str = "") -> Dict[str, Any]:
+def criar_ambiente_compartilhado(
+    user_id: str,
+    titulo: str,
+    experimento: str,
+    turma_id: str = "",
+    professor_responsavel: str = "",
+    participantes: List[str] | None = None,
+) -> Dict[str, Any]:
     user_id = _texto(user_id)
     if not user_id:
         raise PermissionError("Faça login para criar um ambiente.")
@@ -33,6 +40,8 @@ def criar_ambiente_compartilhado(user_id: str, titulo: str, experimento: str, tu
     }
     if experimento not in tipos:
         raise ValueError("Experimento inválido.")
+
+    nomes = [_texto(nome) for nome in (participantes or []) if _texto(nome)][:5]
 
     client = get_supabase_client()
     turma_rows = client.table("turmas").select("id,escola_id").eq("id", turma_id).limit(1).execute().data or []
@@ -55,7 +64,7 @@ def criar_ambiente_compartilhado(user_id: str, titulo: str, experimento: str, tu
         "turma_id": turma_id,
         "codigo_grupo": codigo,
         "professor_responsavel": _texto(professor_responsavel)[:160] or None,
-        "quantidade_participantes": 0,
+        "quantidade_participantes": len(nomes),
         "owner_user_id": user_id,
     }).execute().data or []
     grupo = grupo_rows[0] if grupo_rows else None
@@ -63,8 +72,10 @@ def criar_ambiente_compartilhado(user_id: str, titulo: str, experimento: str, tu
         raise RuntimeError("Não foi possível criar o ambiente.")
 
     client.table("usuarios_grupos").upsert({"user_id": user_id, "grupo_id": grupo["id"], "papel": "professor", "ativo": True}, on_conflict="user_id,grupo_id").execute()
+    if nomes:
+        salvar_participantes(grupo["id"], nomes)
     client.table("experimentos").insert({"grupo_id": grupo["id"], "tipo": tipos[experimento][1], "titulo": titulo, "status": "em_andamento", "modo_aquisicao": "manual"}).execute()
-    return {"grupo": grupo, "codigo": codigo, "titulo": titulo, "experimento": tipos[experimento][0]}
+    return {"grupo": grupo, "codigo": codigo, "titulo": titulo, "experimento": tipos[experimento][0], "participantes": nomes}
 
 
 def entrar_ambiente_por_codigo(user_id: str, codigo: str) -> Dict[str, Any]:
