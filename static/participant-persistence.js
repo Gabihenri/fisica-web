@@ -38,14 +38,15 @@
     }
     hidden.value = id;
 
-    // Depois que o ambiente já existe, não pedir novamente escola/turma.
+    // O grupo já existe: não pedir novamente escola, turma, série etc.
     form.action = '/salvar-participantes';
     const contextBlock = form.querySelector('.context-block');
-    if (contextBlock) contextBlock.style.display = 'none';
-
-    form.querySelectorAll('input').forEach((input) => {
-      if (!input.name.startsWith('nome')) input.disabled = true;
-    });
+    if (contextBlock) {
+      contextBlock.style.display = 'none';
+      contextBlock.querySelectorAll('input, select, textarea').forEach((field) => {
+        field.disabled = true;
+      });
+    }
 
     const button = form.querySelector('button[type="submit"]');
     if (button) button.textContent = 'Salvar participantes';
