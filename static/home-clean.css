@@ -31,34 +31,75 @@ body:has(.shell) .bottom a.active{color:#0869d9}
 body:has(.shell) .bottom .plus{background:#0969d9}
 body:has(.shell) .logout{background:rgba(255,255,255,.08);color:#ffd1d5;border-color:rgba(255,170,180,.55)}
 
-/* Correção de layout da sessão experimental: os campos de participantes não podem impor uma largura mínima ao segundo grid track. */
+/* Estrutura visual do laboratório */
 body:has(.shell) .context{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 body:has(.shell) .context>div{min-width:0}
 body:has(.shell) .participants{grid-template-columns:repeat(5,minmax(0,1fr))}
 body:has(.shell) .participants input{min-width:0;width:100%}
+body:has(.shell) .section-link{display:inline-flex;align-items:center;min-height:40px;padding:8px 12px;border:1px solid #cbd8e7;border-radius:10px;text-decoration:none;color:#174a83;font-weight:800;background:#fff}
+body:has(.shell) .active-group{padding:18px;border:1px solid #cfe0ef;border-radius:14px;background:#f7fbff}
+body:has(.shell) .active-group p{margin:7px 0 0;color:#526b85}
+body:has(.shell) .status-dot{display:inline-block;width:9px;height:9px;margin-right:7px;border-radius:50%;background:#1f9d57;box-shadow:0 0 0 4px rgba(31,157,87,.12)}
+body:has(.shell) .inline-action{display:inline-flex;margin-top:12px;text-decoration:none}
+body:has(.shell) .flow-title{font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;font-weight:850;color:#0878d8}
+body:has(.shell) .flow{list-style:none;padding:0;margin:14px 0 0;display:grid;gap:8px}
+body:has(.shell) .flow li{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:#fff;border:1px solid #dbe7f1;color:#234866;font-weight:800}
+body:has(.shell) .flow li span{font-size:.72rem;color:#0878d8;min-width:22px}
+body:has(.shell) .experiment-kicker,.evidence-number{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;font-weight:850;color:#0878d8}
+body:has(.shell) .evidence-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+body:has(.shell) .evidence-card{min-height:170px}
+body:has(.shell) .evidence-card h3{margin:9px 0 6px}
+body:has(.shell) .evidence-card p{margin:0;color:#62748f;line-height:1.5}
+body:has(.shell) .access-card{margin-bottom:0}
+body:has(.shell) .mobile-register{display:none}
+body:has(.shell) .mobile-nav{display:none}
+body:has(.shell) .large-text{font-size:118%}
 
-@media(max-width:900px){
+@media(max-width:950px){
+ body:has(.shell) .hero{grid-template-columns:1fr}
+ body:has(.shell) .hero-side{min-height:0}
+ body:has(.shell) .grid-3{grid-template-columns:1fr 1fr}
  body:has(.shell) .context{grid-template-columns:1fr}
  body:has(.shell) .participants{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body:has(.shell) .evidence-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:600px){
- body:has(.shell) .shell{width:100%;padding:0 12px 92px}
+ body:has(.shell) .shell{width:100%;padding:0 12px 106px}
  body:has(.shell) .top{margin:0 -12px 12px;padding:15px 16px;border-radius:0 0 20px 20px}
- body:has(.shell) .nav{display:none}
+ body:has(.shell) .desktop-nav{display:none}
  body:has(.shell) .hero{display:block}
  body:has(.shell) .hero-main{padding:22px 18px}
  body:has(.shell) .hero-main h1{font-size:2rem;line-height:1.08}
  body:has(.shell) .hero-actions{margin-top:15px}
- body:has(.shell) .hero-actions a:nth-child(2){display:none}
  body:has(.shell) .hero-actions>*{width:100%;min-height:48px}
+ body:has(.shell) .hero-side{margin-top:10px;padding:17px}
+ body:has(.shell) .flow{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+ body:has(.shell) .flow li{display:block;text-align:center;padding:8px 3px;font-size:.67rem}
+ body:has(.shell) .flow li span{display:block;margin:0 auto 2px}
  body:has(.shell) .section{margin-top:20px}
- body:has(.shell) .section-head{margin-bottom:9px}
+ body:has(.shell) .section-head{display:block;margin-bottom:9px}
  body:has(.shell) .section-head h2{font-size:1.3rem}
- body:has(.shell) .grid-3{gap:10px}
+ body:has(.shell) .section-link{margin-top:9px;width:100%;justify-content:center}
+ body:has(.shell) .grid-3{grid-template-columns:1fr;gap:10px}
  body:has(.shell) .experiment{padding:16px}
+ body:has(.shell) .experiment .actions>*{width:100%}
  body:has(.shell) .context{gap:10px}
- body:has(.shell) .context .card{box-shadow:none}
- body:has(.shell) .hero-side{display:none}
  body:has(.shell) .participants{grid-template-columns:1fr}
+ body:has(.shell) .evidence-grid{grid-template-columns:1fr 1fr;gap:8px}
+ body:has(.shell) .evidence-card{min-height:145px;padding:15px}
+ body:has(.shell) .access{display:block}
+ body:has(.shell) .access-actions{margin-top:12px}
+ body:has(.shell) .access-actions>*{width:100%}
+ body:has(.shell) .mobile-register{display:block;margin:20px 0 0}
+ body:has(.shell) .mobile-register .card{padding:18px}
+ body:has(.shell) .register-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+ body:has(.shell) .register-actions>*{min-height:46px;text-align:center}
+ body:has(.shell) .mobile-nav{position:fixed;display:grid;grid-template-columns:repeat(5,1fr);left:9px;right:9px;bottom:9px;z-index:50;padding:6px;border-radius:15px;background:rgba(255,255,255,.97);border:1px solid #dbe5ef;box-shadow:0 8px 28px rgba(20,50,90,.18);backdrop-filter:blur(16px)}
+ body:has(.shell) .mobile-nav a{text-decoration:none;color:#62748f;text-align:center;padding:6px 2px;font-size:.67rem;font-weight:800}
+ body:has(.shell) .mobile-nav a.active{color:#0869d9}
+ body:has(.shell) .mobile-nav a span{display:block;font-size:1.05rem;line-height:1.05}
+ body:has(.shell) .mobile-nav a small{display:block;font-size:.62rem;margin-top:3px}
+ body:has(.shell) .mobile-nav .plus{background:#0969d9;color:#fff;border-radius:11px;margin:-10px 2px 0;padding-top:8px;box-shadow:0 6px 15px rgba(9,105,217,.25)}
+ body:has(.shell) .mobile-nav .plus span{font-size:1.2rem}
 }
-@media(min-width:601px){body:has(.shell) .bottom{display:none!important}}
+@media(min-width:601px){body:has(.shell) .mobile-nav,body:has(.shell) .mobile-register{display:none!important}}
