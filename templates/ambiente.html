@@ -17,6 +17,12 @@
     input,select{width:100%;padding:14px 16px;border:1px solid var(--borda);border-radius:12px;background:#fff;color:#172b40;font-size:1rem;min-height:50px}
     input:focus,select:focus{outline:3px solid rgba(20,121,232,.22);border-color:var(--azul2)}
     .help{margin:7px 0 0;color:#61758b;font-size:.92rem;line-height:1.45}
+    .participants{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .participants .field{margin:0}
+    .participants input{min-height:46px}
+    .section-label{margin:24px 0 8px;font-size:1.05rem;font-weight:800;color:var(--azul)}
+    .section-help{margin:0 0 12px;color:#61758b;font-size:.9rem;line-height:1.45}
+    .inherited{padding:12px 14px;border:1px solid #c8dceb;border-radius:12px;background:#f5f9fd;color:#536b80;line-height:1.45}
     .actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:26px}
     button,.button{display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:12px 18px;border:0;border-radius:12px;background:var(--azul2);color:#fff;font-weight:750;font-size:1rem;cursor:pointer;text-decoration:none}
     .secondary{background:#eef4fb;color:#12416f;border:1px solid #cbdced}
@@ -28,15 +34,15 @@
     .code{font-size:1.25rem;font-weight:800;letter-spacing:.08em}
     .nav{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:16px}
     .nav a{color:#fff;text-decoration:none;font-weight:700}
-    @media(max-width:620px){main{margin:18px auto;padding:10px}.card{padding:22px}.actions>*{width:100%}.nav{align-items:flex-start;flex-direction:column}}
+    @media(max-width:620px){main{margin:18px auto;padding:10px}.card{padding:22px}.participants{grid-template-columns:1fr}.actions>*{width:100%}.nav{align-items:flex-start;flex-direction:column}}
   </style>
 </head>
 <body>
 <main>
   <div class="nav"><a href="/meus-grupos">← Meus grupos</a><a href="/">Laboratório</a></div>
   <section class="card" aria-labelledby="titulo">
-    <h1 id="titulo">Criar ambiente</h1>
-    <p class="intro">Crie uma sessão experimental compartilhada para uma turma. O código será gerado automaticamente.</p>
+    <h1 id="titulo">Criar grupo experimental</h1>
+    <p class="intro">Cadastre o grupo uma única vez. A escola e a turma são herdadas do vínculo docente, e os participantes ficam salvos no próprio grupo para uso nos experimentos e no relatório.</p>
 
     {% if erro %}<div class="status error" role="alert">{{ erro }}</div>{% endif %}
     {% if mensagem %}<div class="status ok" role="status">{{ mensagem }}{% if criado %}<br><span class="code">{{ criado.codigo }}</span>{% endif %}</div>{% endif %}
@@ -46,12 +52,12 @@
       <input type="hidden" name="acao" value="criar">
 
       <div class="field">
-        <label for="titulo">Nome do ambiente</label>
+        <label for="titulo">Nome do grupo</label>
         <input id="titulo" name="titulo" type="text" required minlength="3" maxlength="100" placeholder="Ex.: Queda Livre — Grupo A" autocomplete="off">
       </div>
 
       <div class="field">
-        <label for="experimento">Experimento</label>
+        <label for="experimento">Experimento inicial</label>
         <select id="experimento" name="experimento" required>
           <option value="">Selecione um experimento</option>
           <option value="queda">Queda Livre</option>
@@ -69,19 +75,34 @@
               <option value="{{ turma.id }}">{{ turma.serie_ano }} — {{ turma.turma }}{% if turma.turno %} — {{ turma.turno }}{% endif %}{% if turma.escola_nome %} — {{ turma.escola_nome }}{% endif %}</option>
             {% endfor %}
           </select>
-          <p id="ajuda-turma" class="help">A lista mostra as turmas às quais seu perfil docente está vinculado.</p>
+          <p id="ajuda-turma" class="help">A escola, série, turno e demais dados escolares serão vinculados automaticamente a partir desta turma. Você não precisará cadastrá-los novamente no experimento.</p>
         {% else %}
           <div class="empty" role="status" aria-live="polite">
             <strong>Nenhuma turma cadastrada para seu perfil.</strong>
-            Cadastre sua escola e sua turma antes de criar um ambiente experimental.
+            Cadastre sua escola e sua turma antes de criar um grupo experimental.
             <div class="actions"><a class="button" href="/cadastro-escolar">Cadastrar escola e turma</a></div>
           </div>
         {% endif %}
       </div>
 
       {% if turmas %}
+        <div class="section-label">Participantes do grupo <span style="font-weight:500;color:#61758b">(opcional)</span></div>
+        <p class="section-help">Informe os nomes agora. Eles serão salvos no grupo e não voltarão a aparecer dentro da tela de medição.</p>
+        <div class="participants" aria-label="Participantes do grupo">
+          {% for i in range(1, 6) %}
+          <div class="field">
+            <label for="nome{{ i }}">Participante {{ i }}</label>
+            <input id="nome{{ i }}" name="nome{{ i }}" type="text" maxlength="120" placeholder="Nome do participante {{ i }}" autocomplete="off">
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="inherited" style="margin-top:18px">
+          <strong>Dados escolares:</strong> serão armazenados junto ao grupo a partir da turma selecionada e ficarão ocultos durante o experimento. Eles serão usados automaticamente na identificação e no relatório.
+        </div>
+
         <div class="actions">
-          <button type="submit">Criar código de acesso</button>
+          <button type="submit">Criar grupo e iniciar experimento</button>
           <a class="button secondary" href="/cadastro-escolar">+ Cadastrar nova turma</a>
         </div>
       {% endif %}
