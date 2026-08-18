@@ -30,8 +30,6 @@ body:has(.shell) .bottom a{color:#62748f}
 body:has(.shell) .bottom a.active{color:#0869d9}
 body:has(.shell) .bottom .plus{background:#0969d9}
 body:has(.shell) .logout{background:rgba(255,255,255,.08);color:#ffd1d5;border-color:rgba(255,170,180,.55)}
-
-/* Estrutura visual do laboratório */
 body:has(.shell) .context{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 body:has(.shell) .context>div{min-width:0}
 body:has(.shell) .participants{grid-template-columns:repeat(5,minmax(0,1fr))}
@@ -54,52 +52,6 @@ body:has(.shell) .access-card{margin-bottom:0}
 body:has(.shell) .mobile-register{display:none}
 body:has(.shell) .mobile-nav{display:none}
 body:has(.shell) .large-text{font-size:118%}
-
-@media(max-width:950px){
- body:has(.shell) .hero{grid-template-columns:1fr}
- body:has(.shell) .hero-side{min-height:0}
- body:has(.shell) .grid-3{grid-template-columns:1fr 1fr}
- body:has(.shell) .context{grid-template-columns:1fr}
- body:has(.shell) .participants{grid-template-columns:repeat(2,minmax(0,1fr))}
- body:has(.shell) .evidence-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-}
-@media(max-width:600px){
- body:has(.shell) .shell{width:100%;padding:0 12px 106px}
- body:has(.shell) .top{margin:0 -12px 12px;padding:15px 16px;border-radius:0 0 20px 20px}
- body:has(.shell) .desktop-nav{display:none}
- body:has(.shell) .hero{display:block}
- body:has(.shell) .hero-main{padding:22px 18px}
- body:has(.shell) .hero-main h1{font-size:2rem;line-height:1.08}
- body:has(.shell) .hero-actions{margin-top:15px}
- body:has(.shell) .hero-actions>*{width:100%;min-height:48px}
- body:has(.shell) .hero-side{margin-top:10px;padding:17px}
- body:has(.shell) .flow{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
- body:has(.shell) .flow li{display:block;text-align:center;padding:8px 3px;font-size:.67rem}
- body:has(.shell) .flow li span{display:block;margin:0 auto 2px}
- body:has(.shell) .section{margin-top:20px}
- body:has(.shell) .section-head{display:block;margin-bottom:9px}
- body:has(.shell) .section-head h2{font-size:1.3rem}
- body:has(.shell) .section-link{margin-top:9px;width:100%;justify-content:center}
- body:has(.shell) .grid-3{grid-template-columns:1fr;gap:10px}
- body:has(.shell) .experiment{padding:16px}
- body:has(.shell) .experiment .actions>*{width:100%}
- body:has(.shell) .context{gap:10px}
- body:has(.shell) .participants{grid-template-columns:1fr}
- body:has(.shell) .evidence-grid{grid-template-columns:1fr 1fr;gap:8px}
- body:has(.shell) .evidence-card{min-height:145px;padding:15px}
- body:has(.shell) .access{display:block}
- body:has(.shell) .access-actions{margin-top:12px}
- body:has(.shell) .access-actions>*{width:100%}
- body:has(.shell) .mobile-register{display:block;margin:20px 0 0}
- body:has(.shell) .mobile-register .card{padding:18px}
- body:has(.shell) .register-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
- body:has(.shell) .register-actions>*{min-height:46px;text-align:center}
- body:has(.shell) .mobile-nav{position:fixed;display:grid;grid-template-columns:repeat(5,1fr);left:9px;right:9px;bottom:9px;z-index:50;padding:6px;border-radius:15px;background:rgba(255,255,255,.97);border:1px solid #dbe5ef;box-shadow:0 8px 28px rgba(20,50,90,.18);backdrop-filter:blur(16px)}
- body:has(.shell) .mobile-nav a{text-decoration:none;color:#62748f;text-align:center;padding:6px 2px;font-size:.67rem;font-weight:800}
- body:has(.shell) .mobile-nav a.active{color:#0869d9}
- body:has(.shell) .mobile-nav a span{display:block;font-size:1.05rem;line-height:1.05}
- body:has(.shell) .mobile-nav a small{display:block;font-size:.62rem;margin-top:3px}
- body:has(.shell) .mobile-nav .plus{background:#0969d9;color:#fff;border-radius:11px;margin:-10px 2px 0;padding-top:8px;box-shadow:0 6px 15px rgba(9,105,217,.25)}
- body:has(.shell) .mobile-nav .plus span{font-size:1.2rem}
-}
+@media(max-width:950px){body:has(.shell) .hero{grid-template-columns:1fr}body:has(.shell) .hero-side{min-height:0}body:has(.shell) .grid-3{grid-template-columns:1fr 1fr}body:has(.shell) .context{grid-template-columns:1fr}body:has(.shell) .participants{grid-template-columns:repeat(2,minmax(0,1fr))}body:has(.shell) .evidence-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){body:has(.shell) .shell{width:100%;padding:0 12px 106px}body:has(.shell) .top{margin:0 -12px 12px;padding:15px 16px;border-radius:0 0 20px 20px}body:has(.shell) .nav{display:none}body:has(.shell) .hero{display:block}body:has(.shell) .hero-main{padding:22px 18px}body:has(.shell) .hero-main h1{font-size:2rem;line-height:1.08}body:has(.shell) .hero-actions{margin-top:15px}body:has(.shell) .hero-actions>*{width:100%;min-height:48px}body:has(.shell) .hero-side{margin-top:10px;padding:17px}body:has(.shell) .flow{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}body:has(.shell) .flow li{display:block;text-align:center;padding:8px 3px;font-size:.67rem}body:has(.shell) .flow li span{display:block;margin:0 auto 2px}body:has(.shell) .section{margin-top:20px}body:has(.shell) .section-head{display:block;margin-bottom:9px}body:has(.shell) .section-head h2{font-size:1.3rem}body:has(.shell) .section-link{margin-top:9px;width:100%;justify-content:center}body:has(.shell) .grid-3{grid-template-columns:1fr;gap:10px}body:has(.shell) .experiment{padding:16px}body:has(.shell) .experiment .actions>*{width:100%}body:has(.shell) .context{gap:10px}body:has(.shell) .participants{grid-template-columns:1fr}body:has(.shell) .evidence-grid{grid-template-columns:1fr 1fr;gap:8px}body:has(.shell) .evidence-card{min-height:145px;padding:15px}body:has(.shell) .access{display:block}body:has(.shell) .access-actions{margin-top:12px}body:has(.shell) .access-actions>*{width:100%}body:has(.shell) .mobile-register{display:block;margin:20px 0 0}body:has(.shell) .mobile-register .card{padding:18px}body:has(.shell) .register-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}body:has(.shell) .register-actions>*{min-height:46px;text-align:center}body:has(.shell) .mobile-nav{position:fixed;display:grid;grid-template-columns:repeat(5,1fr);left:9px;right:9px;bottom:9px;z-index:50;padding:6px;border-radius:15px;background:rgba(255,255,255,.97);border:1px solid #dbe5ef;box-shadow:0 8px 28px rgba(20,50,90,.18);backdrop-filter:blur(16px)}body:has(.shell) .mobile-nav a{text-decoration:none;color:#62748f;text-align:center;padding:6px 2px;font-size:.67rem;font-weight:800}body:has(.shell) .mobile-nav a.active{color:#0869d9}body:has(.shell) .mobile-nav a span{display:block;font-size:1.05rem;line-height:1.05}body:has(.shell) .mobile-nav a small{display:block;font-size:.62rem;margin-top:3px}body:has(.shell) .mobile-nav .plus{background:#0969d9;color:#fff;border-radius:11px;margin:-10px 2px 0;padding-top:8px;box-shadow:0 6px 15px rgba(9,105,217,.25)}body:has(.shell) .mobile-nav .plus span{font-size:1.2rem}body:has(.shell) .bottom .plus small{font-size:0}body:has(.shell) .bottom .plus small:after{content:'Registrar';font-size:.62rem}}
 @media(min-width:601px){body:has(.shell) .mobile-nav,body:has(.shell) .mobile-register{display:none!important}}
