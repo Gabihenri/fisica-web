@@ -15,26 +15,19 @@
     for (let i = 1; i <= 5; i += 1) {
       let input = form.querySelector(`[name="nome${i}"]`);
       if (!input) input = inputs.find((candidate) => String(candidate.getAttribute('placeholder') || '').trim() === `Participante ${i}`);
-      if (input) {
-        input.name = `nome${i}`;
-        found.push(input);
-      }
+      if (input) { input.name = `nome${i}`; found.push(input); }
     }
     return found;
   }
 
-  function groupId() {
-    return new URLSearchParams(window.location.search).get('grupo_id') || '';
-  }
+  function groupId() { return new URLSearchParams(window.location.search).get('grupo_id') || ''; }
 
   function experimentKey() {
     const key = new URLSearchParams(window.location.search).get('experimento') || '';
     return Object.prototype.hasOwnProperty.call(EXPERIMENTS, key) ? key : '';
   }
 
-  function experimentCards() {
-    return [...document.querySelectorAll('#experimentos .experiment')];
-  }
+  function experimentCards() { return [...document.querySelectorAll('#experimentos .experiment')]; }
 
   function cardKey(card) {
     const form = card.querySelector('form[action]');
@@ -73,14 +66,14 @@
         });
       }
 
-      const actions = card.querySelector('.actions');
-      if (actions) {
-        const button = document.createElement('a');
-        button.className = 'secondary experiment-open';
-        button.href = experimentUrl(key);
-        button.textContent = 'Abrir experimento';
-        actions.insertBefore(button, actions.firstChild);
-      }
+      const button = document.createElement('a');
+      button.className = 'secondary experiment-open';
+      button.href = experimentUrl(key);
+      button.textContent = 'Abrir experimento';
+      const description = card.querySelector('p');
+      if (description) description.insertAdjacentElement('afterend', button);
+      else card.appendChild(button);
+
       card.dataset.experimentNavigationReady = 'true';
     });
   }
@@ -90,7 +83,6 @@
     if (!section || section.querySelector('.experiment-workspace-header')) return;
     const head = section.querySelector('.section-head');
     if (!head) return;
-
     const id = groupId();
     const backUrl = id ? `/?grupo_id=${encodeURIComponent(id)}#experimentos` : '/#experimentos';
     const header = document.createElement('div');
@@ -105,17 +97,27 @@
     style.id = 'experiment-workspace-styles';
     style.textContent = `
       .experiment h3[role="link"]{cursor:pointer}
+      .experiment-open{display:flex;margin-top:12px;width:100%}
       .experiment-workspace-header{display:flex;gap:16px;align-items:center;margin-bottom:14px;padding:4px 0}
       .experiment-workspace-header .secondary{flex:0 0 auto}
       .workspace-title{display:flex;gap:12px;align-items:center}
       .workspace-title h2{margin:2px 0 2px;font-size:1.55rem;color:#173b59}
       .workspace-title p{margin:0;color:#536b80;font-size:.9rem}
       .workspace-icon{display:grid;place-items:center;width:48px;height:48px;border-radius:12px;background:#1267b1;color:#fff;font-size:1.35rem;font-weight:900}
+      #experimentos.selection-mode .experiment form,#experimentos.selection-mode .experiment .stats{display:none}
+      #experimentos.selection-mode .grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
       #experimentos.experiment-focused .grid-3{grid-template-columns:minmax(0,1fr);max-width:900px;margin:0 auto}
       #experimentos.experiment-focused .experiment{width:100%}
       #experimentos.experiment-focused .experiment-open{display:none}
       #experimentos.experiment-focused .experiment{box-shadow:0 8px 28px rgba(28,67,101,.10)}
-      @media(max-width:600px){.experiment-workspace-header{align-items:flex-start;flex-direction:column}.experiment-workspace-header .secondary{width:100%}.workspace-title{align-items:flex-start}.workspace-title h2{font-size:1.35rem}#experimentos.experiment-focused .grid-3{max-width:none}}
+      @media(max-width:950px){#experimentos.selection-mode .grid-3{grid-template-columns:1fr 1fr}}
+      @media(max-width:600px){
+        .experiment-workspace-header{align-items:flex-start;flex-direction:column}
+        .experiment-workspace-header .secondary{width:100%}
+        .workspace-title{align-items:flex-start}
+        .workspace-title h2{font-size:1.35rem}
+        #experimentos.selection-mode .grid-3,#experimentos.experiment-focused .grid-3{grid-template-columns:1fr;max-width:none}
+      }
     `;
     document.head.appendChild(style);
   }
@@ -128,6 +130,7 @@
     addWorkspaceStyles();
 
     if (!key) {
+      section.classList.add('selection-mode');
       cards.forEach((card) => { card.hidden = false; });
       return;
     }
@@ -148,7 +151,6 @@
     const id = groupId();
     const form = document.getElementById('grupoForm');
     if (!id || !form) return;
-
     let hidden = form.querySelector('[name="grupo_id"]');
     if (!hidden) {
       hidden = document.createElement('input');
@@ -158,7 +160,6 @@
     }
     hidden.value = id;
     form.action = '/salvar-participantes';
-
     const contextBlock = form.querySelector('.context-block');
     if (contextBlock) {
       contextBlock.style.display = 'none';
@@ -168,7 +169,6 @@
     if (button) button.textContent = 'Salvar participantes';
     const actions = form.querySelector('.actions');
     if (actions) actions.style.marginTop = '0';
-
     const participantsBlock = document.querySelector('.participants')?.closest('.context-block');
     if (participantsBlock) {
       const note = participantsBlock.querySelector('.context-note');
