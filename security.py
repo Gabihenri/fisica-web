@@ -58,11 +58,36 @@ def validate_uuid(value: str, field: str) -> str:
         raise ValueError(f"{field} inválido.") from None
 
 
-# app.py importa este módulo depois de carregar app_core.app; portanto,
-# registramos aqui a nova API sem alterar a estrutura principal da aplicação.
+# app.py importa este módulo depois de carregar app_core.app; nesse momento
+# a aplicação Flask já existe. Registramos a API e a camada visual nova aqui,
+# mantendo o núcleo de rotas existente sem substituí-lo.
 try:
     from app_core import app as _app
     from observacoes import register_observation_routes
     register_observation_routes(_app)
 except Exception:
     logger.exception("Não foi possível registrar as rotas de observações na inicialização")
+
+
+# A aplicação já injeta participant-persistence.js. Esta camada adicional é
+# inserida aqui para manter a funcionalidade modular e compatível com páginas
+# existentes do laboratório.
+try:
+    _original_after_request_functions = list(_app.after_request_funcs.get(None, [])) if '_app' in globals() else []
+
+    if '_app' in globals():
+        @_app.after_request
+        def inject_participant_observations_script(response):
+            if "text/html" not in response.headers.get("Content-Type", "").lower():
+                return response
+            try:
+                body = response.get_data(as_text=True)
+                marker = '<script src="/static/participant-observations.js" defer></script>'
+                if marker not in body and "</body>" in body:
+                    body = body.replace("</body>", f"{marker}</body>", 1)
+                    response.set_data(body)
+            except Exception:
+                logger.exception("Falha ao injetar camada de observações")
+            return response
+except Exception:
+    logger.exception("Falha ao registrar injeção da interface de observações")
