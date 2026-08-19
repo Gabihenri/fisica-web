@@ -56,11 +56,20 @@ def inject_security_helpers(): return {"csrf_token": _csrf_token, "current_role"
 
 @app.before_request
 def security_guard():
-    path = request.path; public = {"/acesso", "/api/acesso/login", "/api/acesso/cadastro", "/api/acesso/status", "/api/health/supabase"}
-    if path.startswith("/static/") or path in public: return None
+    path = request.path
+    public = {"/", "/acesso", "/api/acesso/login", "/api/acesso/cadastro", "/api/acesso/status", "/api/health/supabase", "/configuracao-experimental"}
+    public_prefixes = ("/laboratorio/", "/laboratorio-")
+    if path.startswith("/static/") or path in public or path.startswith(public_prefixes):
+        # Rotas públicas não recebem acesso a dados identificados por grupo.
+        # Quando grupo_id é informado, a proteção abaixo continua obrigatória.
+        if not _grupo_id_requisicao():
+            return None
     if not session.get("user_id"):
-        if path.startswith("/api/"): return jsonify({"erro": "Autenticação necessária.", "destino": "/acesso"}), 401
-        return redirect("/acesso")
+        if path.startswith("/api/"):
+            return jsonify({"erro": "Autenticação necessária para dados persistentes.", "destino": "/acesso"}), 401
+        if _grupo_id_requisicao():
+            return render_template("403.html"), 403
+        return redirect("/acesso") if path not in public and not path.startswith(public_prefixes) else None
     if request.method == "POST":
         supplied = request.form.get("csrf_token") or request.headers.get("X-CSRF-Token"); expected = session.get("csrf_token")
         if not supplied or not expected or not secrets.compare_digest(str(supplied), str(expected)):
@@ -213,9 +222,6 @@ def ambiente():
             if acao == "criar":
                 if role not in {"professor", "admin_instituicao", "admin_plataforma"}: return render_template("403.html"), 403
                 criado = criar_ambiente_compartilhado(user_id=uid, titulo=request.form.get("titulo", ""), experimento=request.form.get("experimento", ""), turma_id=request.form.get("turma_id", ""), professor_responsavel=session.get("user_email", ""))
-                # O ambiente já foi criado e o experimento já está vinculado ao grupo.
-                # A próxima etapa deve ser o próprio ambiente experimental, onde o
-                # professor informa os participantes sem voltar à tela de criação.
                 return redirect(f"/?grupo_id={criado['grupo']['id']}&experimento={request.form.get('experimento', '').strip().lower()}#contexto")
             elif acao == "entrar":
                 resultado = entrar_ambiente_por_codigo(uid, request.form.get("codigo", "")); return redirect(f"/?grupo_id={resultado['grupo']['id']}#contexto")
