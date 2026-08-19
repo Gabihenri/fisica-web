@@ -1,0 +1,1 @@
+O catálogo desta branch está pronto para validação. A integração com a aplicação principal deve ser feita somente após verificar o ponto exato de registro de rotas em app.py, preservando o security_guard e as rotas existentes.
