@@ -1,0 +1,1 @@
+A próxima alteração obrigatória é registrar `registrar_catalogo_publico(app)` no ponto de inicialização de `app.py`, depois validar as rotas `/experimentos` e `/experimentos/<slug>`. Não fazer merge antes dessa validação.

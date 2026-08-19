@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{{ experimento.titulo }} | Física Web{% endblock %}
+{% block content %}
+<main class="container" id="conteudo">
+  <nav aria-label="Navegação do experimento"><a href="/experimentos">← Voltar aos experimentos</a></nav>
+  <header class="page-header">
+    <p class="eyebrow">{{ experimento.area }}</p>
+    <h1>{{ experimento.titulo }}</h1>
+    <p>{{ experimento.descricao }}</p>
+  </header>
+
+  <section aria-labelledby="objetivos-title">
+    <h2 id="objetivos-title">Objetivos</h2>
+    <ul>{% for objetivo in experimento.objetivos %}<li>{{ objetivo }}</li>{% endfor %}</ul>
+  </section>
+
+  <section aria-labelledby="proxima-title">
+    <h2 id="proxima-title">Investigação</h2>
+    <p>Este experimento foi incorporado ao catálogo científico do Física Web. A interface de coleta, análise, audiodescrição e uso de sensores será construída sobre o mesmo núcleo experimental.</p>
+    <p><strong>Próxima etapa:</strong> iniciar a coleta de dados deste experimento com orientação acessível.</p>
+  </section>
+</main>
+{% endblock %}
