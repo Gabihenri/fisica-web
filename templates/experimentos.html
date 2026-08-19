@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Experimentos | Física Web{% endblock %}
+{% block content %}
+<main class="container" id="conteudo">
+  <header class="page-header">
+    <p class="eyebrow">Laboratório de Física</p>
+    <h1>Experimentos</h1>
+    <p>Escolha uma investigação para começar. O acesso aos experimentos é livre; dados persistentes e ambientes de grupo permanecem protegidos.</p>
+  </header>
+
+  <section aria-labelledby="catalogo-title">
+    <h2 id="catalogo-title">Novos experimentos</h2>
+    <div class="experiment-grid">
+      {% for experimento in experimentos %}
+      <article class="experiment-card" data-area="{{ experimento.area }}">
+        <p class="experiment-area">{{ experimento.area }}</p>
+        <h3>{{ experimento.titulo }}</h3>
+        <p>{{ experimento.descricao }}</p>
+        <details>
+          <summary>Objetivos do experimento</summary>
+          <ul>
+            {% for objetivo in experimento.objetivos %}<li>{{ objetivo }}</li>{% endfor %}
+          </ul>
+        </details>
+        <a class="button" href="/experimentos/{{ experimento.slug }}">Conhecer experimento</a>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+</main>
+{% endblock %}
