@@ -56,18 +56,23 @@ def inject_security_helpers(): return {"csrf_token": _csrf_token, "current_role"
 
 @app.before_request
 def security_guard():
-    path = request.path; public = {"/acesso", "/api/acesso/login", "/api/acesso/cadastro", "/api/acesso/status", "/api/health/supabase"}
-    if path.startswith("/static/") or path in public: return None
+    path = request.path
+    public = {"/", "/acesso", "/api/acesso/login", "/api/acesso/cadastro", "/api/acesso/status", "/api/health/supabase", "/configuracao-experimental", "/queda-livre", "/pendulo", "/plano"}
+    public_prefixes = ("/laboratorio/", "/laboratorio-", "/api/analise/", "/api/estatisticas/", "/api/relatorio-acessivel/", "/grafico/", "/relatorio/")
+    if path.startswith("/static/") or path in public or path.startswith(public_prefixes):
+        if not _grupo_id_requisicao():
+            return None
     if not session.get("user_id"):
-        if path.startswith("/api/"): return jsonify({"erro": "Autenticação necessária.", "destino": "/acesso"}), 401
-        return redirect("/acesso")
+        if path.startswith("/api/"):
+            return jsonify({"erro": "Autenticação necessária para dados persistentes.", "destino": "/acesso"}), 401
+        if _grupo_id_requisicao():
+            return render_template("403.html"), 403
+        return redirect("/acesso") if path not in public and not path.startswith(public_prefixes) else None
     if request.method == "POST":
         supplied = request.form.get("csrf_token") or request.headers.get("X-CSRF-Token"); expected = session.get("csrf_token")
         if not supplied or not expected or not secrets.compare_digest(str(supplied), str(expected)):
             logger.warning("CSRF rejeitado: path=%s user=%s", path, session.get("user_id")); return jsonify({"erro": "Solicitação inválida. Atualize a página e tente novamente."}), 400
 
-    # Regra central de compartilhamento: qualquer dado identificado por grupo
-    # só pode ser acessado por um membro ativo daquele grupo.
     grupo_id = _grupo_id_requisicao()
     if grupo_id and not usuario_tem_acesso_grupo(session.get("user_id", ""), grupo_id):
         logger.warning("Acesso a grupo negado: path=%s user=%s grupo=%s", path, session.get("user_id"), grupo_id)
@@ -75,8 +80,6 @@ def security_guard():
             return jsonify({"erro": "Você não pertence a este grupo."}), 403
         return render_template("403.html"), 403
 
-    # Alunos podem trabalhar no grupo e registrar medições, mas não podem
-    # criar grupos por rotas legadas nem apagar o grupo inteiro ou limpar o histórico.
     if request.method == "POST" and (path == "/salvar-grupo" or path == "/excluir-grupo" or path.startswith("/limpar-")):
         if current_role() not in {"professor", "admin_instituicao", "admin_plataforma"}:
             return render_template("403.html"), 403
@@ -213,9 +216,6 @@ def ambiente():
             if acao == "criar":
                 if role not in {"professor", "admin_instituicao", "admin_plataforma"}: return render_template("403.html"), 403
                 criado = criar_ambiente_compartilhado(user_id=uid, titulo=request.form.get("titulo", ""), experimento=request.form.get("experimento", ""), turma_id=request.form.get("turma_id", ""), professor_responsavel=session.get("user_email", ""))
-                # O ambiente já foi criado e o experimento já está vinculado ao grupo.
-                # A próxima etapa deve ser o próprio ambiente experimental, onde o
-                # professor informa os participantes sem voltar à tela de criação.
                 return redirect(f"/?grupo_id={criado['grupo']['id']}&experimento={request.form.get('experimento', '').strip().lower()}#contexto")
             elif acao == "entrar":
                 resultado = entrar_ambiente_por_codigo(uid, request.form.get("codigo", "")); return redirect(f"/?grupo_id={resultado['grupo']['id']}#contexto")
