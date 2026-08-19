@@ -57,11 +57,9 @@ def inject_security_helpers(): return {"csrf_token": _csrf_token, "current_role"
 @app.before_request
 def security_guard():
     path = request.path
-    public = {"/", "/acesso", "/api/acesso/login", "/api/acesso/cadastro", "/api/acesso/status", "/api/health/supabase", "/configuracao-experimental"}
-    public_prefixes = ("/laboratorio/", "/laboratorio-")
+    public = {"/", "/acesso", "/api/acesso/login", "/api/acesso/cadastro", "/api/acesso/status", "/api/health/supabase", "/configuracao-experimental", "/queda-livre", "/pendulo", "/plano"}
+    public_prefixes = ("/laboratorio/", "/laboratorio-", "/api/analise/", "/api/estatisticas/", "/api/relatorio-acessivel/", "/grafico/", "/relatorio/")
     if path.startswith("/static/") or path in public or path.startswith(public_prefixes):
-        # Rotas públicas não recebem acesso a dados identificados por grupo.
-        # Quando grupo_id é informado, a proteção abaixo continua obrigatória.
         if not _grupo_id_requisicao():
             return None
     if not session.get("user_id"):
@@ -75,8 +73,6 @@ def security_guard():
         if not supplied or not expected or not secrets.compare_digest(str(supplied), str(expected)):
             logger.warning("CSRF rejeitado: path=%s user=%s", path, session.get("user_id")); return jsonify({"erro": "Solicitação inválida. Atualize a página e tente novamente."}), 400
 
-    # Regra central de compartilhamento: qualquer dado identificado por grupo
-    # só pode ser acessado por um membro ativo daquele grupo.
     grupo_id = _grupo_id_requisicao()
     if grupo_id and not usuario_tem_acesso_grupo(session.get("user_id", ""), grupo_id):
         logger.warning("Acesso a grupo negado: path=%s user=%s grupo=%s", path, session.get("user_id"), grupo_id)
@@ -84,8 +80,6 @@ def security_guard():
             return jsonify({"erro": "Você não pertence a este grupo."}), 403
         return render_template("403.html"), 403
 
-    # Alunos podem trabalhar no grupo e registrar medições, mas não podem
-    # criar grupos por rotas legadas nem apagar o grupo inteiro ou limpar o histórico.
     if request.method == "POST" and (path == "/salvar-grupo" or path == "/excluir-grupo" or path.startswith("/limpar-")):
         if current_role() not in {"professor", "admin_instituicao", "admin_plataforma"}:
             return render_template("403.html"), 403
